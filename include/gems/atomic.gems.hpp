@@ -92,16 +92,16 @@ atomicassets::assets_s get_asset( const name owner, const uint64_t asset_id )
     return _assets.get( asset_id, "get_asset: `asset_id` does not belong to `owner`" );
 }
 
-atomic::nft get_nft( const name owner, const uint64_t asset_id )
+nft get_nft( const name owner, const uint64_t asset_id )
 {
     atomicassets::assets_s my_asset = get_asset( owner, asset_id );
-    return atomic::nft{ my_asset.collection_name, my_asset.template_id };
+    return nft{ my_asset.collection_name, my_asset.template_id };
 }
 
-atomic::nft_extra get_nft_extra( const name owner, const uint64_t asset_id )
+nft_extra get_nft_extra( const name owner, const uint64_t asset_id )
 {
     atomicassets::assets_s my_asset = get_asset( owner, asset_id );
-    return atomic::nft_extra{ my_asset.collection_name, my_asset.template_id, my_asset.schema_name };
+    return nft_extra{ my_asset.collection_name, my_asset.template_id, my_asset.schema_name };
 }
 
 atomicdata::ATTRIBUTE_MAP get_template_immutable( const atomicassets::assets_s& asset )
@@ -110,27 +110,27 @@ atomicdata::ATTRIBUTE_MAP get_template_immutable( const atomicassets::assets_s& 
     const name schema_name = asset.schema_name;
     const int32_t template_id = asset.template_id;
 
-    vector<atomicdata::FORMAT> format = atomic::get_schema( collection_name, schema_name ).format;
-    vector<uint8_t> data = atomic::get_template( collection_name, template_id ).immutable_serialized_data;
+    vector<atomicdata::FORMAT> format = get_schema( collection_name, schema_name ).format;
+    vector<uint8_t> data = get_template( collection_name, template_id ).immutable_serialized_data;
     return atomicdata::deserialize( data, format );
 }
 
 atomicdata::ATTRIBUTE_MAP get_template_immutable( const name collection_name, const name schema_name, const int32_t template_id )
 {
-    vector<atomicdata::FORMAT> format = atomic::get_schema( collection_name, schema_name ).format;
-    vector<uint8_t> data = atomic::get_template( collection_name, template_id ).immutable_serialized_data;
+    vector<atomicdata::FORMAT> format = get_schema( collection_name, schema_name ).format;
+    vector<uint8_t> data = get_template( collection_name, template_id ).immutable_serialized_data;
     return atomicdata::deserialize( data, format );
 }
 
 atomicdata::ATTRIBUTE_MAP get_asset_immutable( const atomicassets::assets_s& asset )
 {
-    vector<atomicdata::FORMAT> format = atomic::get_schema( asset.collection_name, asset.schema_name ).format;
+    vector<atomicdata::FORMAT> format = get_schema( asset.collection_name, asset.schema_name ).format;
     return atomicdata::deserialize( asset.immutable_serialized_data, format );
 }
 
 atomicdata::ATTRIBUTE_MAP get_asset_mutable( const atomicassets::assets_s& asset )
 {
-    vector<atomicdata::FORMAT> format = atomic::get_schema( asset.collection_name, asset.schema_name ).format;
+    vector<atomicdata::FORMAT> format = get_schema( asset.collection_name, asset.schema_name ).format;
     return atomicdata::deserialize( asset.mutable_serialized_data, format );
 }
 
@@ -181,7 +181,7 @@ name get_schema_name( const name collection_name, const int32_t template_id )
     return get_template( collection_name, template_id ).schema_name;
 }
 
-name get_schema_name( const atomic::nft id )
+name get_schema_name( const nft id )
 {
     return get_template( id.collection_name, id.template_id ).schema_name;
 }
@@ -192,7 +192,7 @@ uint64_t get_next_asset_id( )
     return config.get().asset_counter;
 }
 
-name get_author( const atomic::nft id )
+name get_author( const nft id )
 {
     return get_collection( id.collection_name ).author;
 }
@@ -218,13 +218,13 @@ set<name> get_authorized_accounts( const name collection_name )
 
 bool is_authorized_account( const name collection_name, const name account )
 {
-    const set<name> authorized_accounts = atomic::get_authorized_accounts( collection_name );
+    const set<name> authorized_accounts = get_authorized_accounts( collection_name );
     return authorized_accounts.find(account) != authorized_accounts.end();
 }
 
 void check_authorized_account( const name collection_name, const name account )
 {
-    check( is_authorized_account( collection_name, account ), "atomic::gems::check_authorized_account: [account=" + account.to_string() + "] is not authorized" );
+    check( is_authorized_account( collection_name, account ), "gems::check_authorized_account: [account=" + account.to_string() + "] is not authorized" );
 }
 
 uint32_t get_issued_supply( const name collection_name, const int32_t template_id )
