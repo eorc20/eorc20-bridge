@@ -1,0 +1,6 @@
+node_modules
+*.abi
+*.wasm
+*.log
+target
+!include/atomicassets/*
