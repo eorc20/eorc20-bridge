@@ -29,7 +29,8 @@ public:
     [[eosio::on_notify("atomicassets::transfer")]]
     void on_nft_transfer( const name from, const name to, const vector<uint64_t> asset_ids, const std::string memo );
 private:
-    checksum256 make_key(bytes data);
-    checksum256 make_key(const uint8_t *ptr, size_t len);
+    checksum256 make_key(const string str);
+    checksum256 make_key(const bytes data);
+    checksum256 make_key(const uint8_t *ptr, const size_t len);
     checksum256 get_trx_id();
 };
