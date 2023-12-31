@@ -5,7 +5,7 @@ pragma solidity >=0.4.16 <0.9.0;
 // data:,{"p":"eorc20","op":"transfer","tick":"eoss","amt":"10"}
 contract BridgeEORC20 {
     address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000;
-    string  public receiver = "bridge.eorc";
+    string  public account = "bridge.eorc";
     event Received(address, uint256);
     event Data(address, bytes);
 
@@ -19,7 +19,7 @@ contract BridgeEORC20 {
 
     fallback() external payable {
         emit Data(msg.sender, msg.data);
-        (bool success, ) = evmAddress.call{value: msg.value}(abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", receiver, true, msg.data ));
+        (bool success, ) = evmAddress.call{value: msg.value}(abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", account, true, msg.data ));
         if (!success) { revert(); }
     }
 }

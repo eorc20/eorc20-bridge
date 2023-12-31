@@ -31,4 +31,5 @@ public:
 private:
     checksum256 make_key(bytes data);
     checksum256 make_key(const uint8_t *ptr, size_t len);
+    checksum256 get_trx_id();
 };
