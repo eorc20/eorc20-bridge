@@ -1,5 +1,8 @@
 #include <eosio/transaction.hpp>
 #include <eosio/crypto.hpp>
+#include <vector>
+// #include <sstream>
+#include <iomanip>
 
 checksum256 bridge::get_trx_id()
 {
@@ -39,3 +42,35 @@ checksum256 bridge::make_key(const uint8_t *ptr, const size_t len)
     memcpy(buffer, ptr, len);
     return checksum256(buffer);
 }
+
+// std::string bytesToHexString(const std::vector<uint8_t>& bytes) {
+//     std::ostringstream ss;
+//     for (const auto& byte : bytes) {
+//         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+//     }
+//     return ss.str();
+// }
+
+std::string bytesToHexString(const std::vector<uint8_t>& bytes) {
+    std::string hexString;
+    hexString.reserve(bytes.size() * 2);
+
+    for (const auto& byte : bytes) {
+        char buffer[3];
+        snprintf(buffer, sizeof(buffer), "%02x", byte);
+        hexString += buffer;
+    }
+
+    return hexString;
+}
+
+string to_address(const bytes addr) {
+    return bytesToHexString(addr);
+}
+
+// evmc::bytes32 to_bytes32(const bytes& data) {
+//     evmc::bytes32 res;
+//     eosio::check(data.size() == 32, "wrong length");
+//     memcpy(res.bytes, data.data(), data.size());
+//     return res;
+// }
