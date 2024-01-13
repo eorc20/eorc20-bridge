@@ -14,6 +14,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
     address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
     string  public bridgeAccount = "bridge.eorc";
+    uint256 public egressFee = 0;
     uint256 public id = 0;
 
     constructor(
@@ -26,29 +27,29 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         return 0;
     }
 
+    function setFee(uint256 _egressFee) public onlyOwner {
+        egressFee = _egressFee;
+    }
+
+    function mint(address to, uint256 value) public onlyOwner {
+        _mint(to, value);
+    }
+
     function _update(address from, address to, uint256 value) override internal {
-        _beforeTokenTransfer(from, to, value);
         super._update(from, to, value);
         _afterTokenTransfer(from, to, value);
+        _inscribe(from, to, value);
     }
 
     function _isReservedAddress(address addr) internal pure returns (bool) {
         return ((uint160(addr) & uint160(0xFffFfFffffFfFFffffFFFffF0000000000000000)) == uint160(0xBBbbBbBbbBbbBbbbBbbbBBbb0000000000000000));
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 value) internal {
-        // ignore mint and burn
-        if (from == address(0) || to == address(0)) return;
-        if (from == bridgeAddress) {
-            require(_msgSender() == bridgeAddress, "EORC20: only bridge.eorc address can mint");
-            _mint(to, value);
-        }
-    }
-
     function _afterTokenTransfer(address from, address to, uint256 value) internal {
         // ignore mint and burn
         if (from == address(0) || to == address(0)) return;
         if (_isReservedAddress(to)) {
+            require(msg.value == egressFee, "incorrect egress bridge fee");
             _notifyBridge(from, to, value);
             _burn(to, value);
         }
@@ -60,9 +61,10 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         if (!success) { revert(); }
     }
 
-    // Allows withdrawal of EORC-20 inscriptions from the contract
-    function inscribe(address from, address to, bytes calldata data) public onlyOwner {
+    // Inscription events on Transfer
+    function _inscribe(address from, address to, uint256 value) internal {
         id++;
+        bytes memory data = abi.encodePacked('data:,{"p":"eorc20","op":"transfer","tick":"', symbol(), '","amt":"', value, '"}');
         emit Inscribe( id, data );
         emit TransferIns( from, to, id );
     }
