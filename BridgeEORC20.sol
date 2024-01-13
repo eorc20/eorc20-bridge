@@ -19,8 +19,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
 
     constructor(
         string memory _name,
-        string memory _symbol,
-        uint256 _totalSupply
+        string memory _symbol
     ) ERC20(_name, _symbol) Ownable(bridgeAddress) {}
 
     function decimals() public view virtual override returns (uint8) {
@@ -33,6 +32,10 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
 
     function mint(address to, uint256 value) public onlyOwner {
         _mint(to, value);
+    }
+
+    function burn(uint256 value) public {
+        _burn(_msgSender(), value);
     }
 
     function _update(address from, address to, uint256 value) override internal {
