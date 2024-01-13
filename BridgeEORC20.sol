@@ -18,15 +18,21 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
 
     constructor(
         string memory _name,
-        string memory _symbol
-    ) ERC20(_name, _symbol) Ownable(bridgeAddress) {}
+        string memory _symbol,
+        uint256 _totalSupply
+    ) ERC20(_name, _symbol) Ownable(bridgeAddress) {
+        _mint(bridgeAddress, _totalSupply);
+    }
 
     function decimals() public view virtual override returns (uint8) {
         return 0;
     }
 
+    function mint(address account, uint256 value) public onlyOwner {
+        _mint(account, value);
+    }
+
     function _update(address from, address to, uint256 value) override internal {
-        _beforeTokenTransfer(from, to, value);
         super._update(from, to, value);
         _afterTokenTransfer(from, to, value);
     }
@@ -35,21 +41,13 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         return ((uint160(addr) & uint160(0xFffFfFffffFfFFffffFFFffF0000000000000000)) == uint160(0xBBbbBbBbbBbbBbbbBbbbBBbb0000000000000000));
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 value) internal {
-        // ignore mint and burn
-        if (from == address(0) || to == address(0)) return;
-        if (from == bridgeAddress) {
-            require(_msgSender() == bridgeAddress, "EORC20: only bridge.eorc address can mint");
-            _mint(to, value);
-        }
-    }
-
     function _afterTokenTransfer(address from, address to, uint256 value) internal {
         // ignore mint and burn
         if (from == address(0) || to == address(0)) return;
+
         if (_isReservedAddress(to)) {
-            _notifyBridge(from, to, value);
             _burn(to, value);
+            _notifyBridge(from, to, value);
         }
     }
 
@@ -79,7 +77,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         address owner = _msgSender();
         require(tx.origin == owner, "contracts not allowed");
 
-        // append `from` sender with message calldata
+        // append `owner` sender with message calldata
         bytes memory receiver_msg = abi.encodePacked(owner, _msgData());
 
         // push calldata to EOS Native
