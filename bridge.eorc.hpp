@@ -13,7 +13,6 @@ class [[eosio::contract("bridge.eorc")]] bridge : public eosio::contract {
 public:
     using contract::contract;
 
-
     struct bridge_message_v0 {
         eosio::name receiver;
         bytes sender;
@@ -25,9 +24,6 @@ public:
 
     [[eosio::action]]
     void onbridgemsg(const bridge_message_t message);
-
-    [[eosio::on_notify("atomicassets::transfer")]]
-    void on_nft_transfer( const name from, const name to, const vector<uint64_t> asset_ids, const std::string memo );
 private:
     checksum256 make_key(const string str);
     checksum256 make_key(const bytes data);

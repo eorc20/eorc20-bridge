@@ -8,7 +8,6 @@ const blockchain = new Blockchain()
 
 // contracts
 const contract = blockchain.createContract('bridge.eorc', 'bridge.eorc', true);
-const atomic = blockchain.createContract('atomicassets', './include/atomicassets/atomicassets', true);
 
 const collection_name = "eorc";
 blockchain.createAccounts(collection_name, 'myaccount`');
@@ -29,22 +28,7 @@ function getConfig() {
 }
 
 describe('bridge.eorc', () => {
-  it("atomicassets", async () => {
-    await atomic.actions.init([]).send();
-    await atomic.actions.createcol([collection_name, collection_name, true, [collection_name], [], 0, []]).send(collection_name);
-    await atomic.actions.createschema([collection_name, collection_name, "inscriptions", [{"name": "name", "type": "string"}]]).send(collection_name);
-    await atomic.actions.createtempl([collection_name, collection_name, "inscriptions", true, true, 0, [{"key": "name", "value": ["string", "astronaut"]}]]).send(collection_name);
-    await atomic.actions.mintasset([collection_name, collection_name, "inscriptions", 1, "myaccount", [], [], []]).send(collection_name);
-    await atomic.actions.mintasset([collection_name, collection_name, "inscriptions", 1, "myaccount", [], [], []]).send(collection_name);
-    await atomic.actions.mintasset([collection_name, collection_name, "inscriptions", 1, "myaccount", [], [], []]).send(collection_name);
-    await atomic.actions.mintasset([collection_name, collection_name, "inscriptions", 1, "myaccount", [], [], []]).send(collection_name);
 
-    assert.ok(true)
-  });
-
-  it("transfer", async () => {
-    await atomic.actions.transfer(["myaccount", "bridge.eorc", [1099511627776, 1099511627777], "0x856ed111f878a6CC5c0E7784E5988f2DD9388181"]).send("myaccount");
-  });
 });
 
 /**

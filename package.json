@@ -5,9 +5,9 @@
   "description": "EORC-20 Bridge",
   "license": "MIT",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "build": "blanc++ bridge.eorc.cpp -I include",
-    "release": "cdt-cpp bridge.eorc.cpp -I include",
+    "build": "cdt-cpp bridge.eorc.cpp -I include",
     "test": "node *.spec.js"
   },
   "devDependencies": {
