@@ -6,11 +6,15 @@ import {ERC20Pausable} from "./contracts/token/ERC20/extensions/ERC20Pausable.so
 import {Ownable} from "./contracts/access/Ownable.sol";
 
 contract EORC20 is ERC20Pausable, Ownable {
-    string  public bridgeAccount = "bridge.eorc";
     address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
+    string  public bridgeAccount = "bridge.eorc";
 
-    constructor() ERC20("EOSS eorc-20", "EOSS") Ownable(bridgeAddress) {
-        _mint(bridgeAddress, 210000000000);
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint256 _totalSupply
+    ) ERC20(_name, _symbol) Ownable(bridgeAddress) {
+        _mint(bridgeAddress, _totalSupply);
     }
 
     function decimals() public view virtual override returns (uint8) {

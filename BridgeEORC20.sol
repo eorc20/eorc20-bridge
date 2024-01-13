@@ -12,8 +12,9 @@ interface IERC7583 {
 // data:,{"p":"eorc20","op":"transfer","tick":"eoss","amt":"10"}
 // 0x646174613a2c7b2270223a22656f72633230222c226f70223a227472616e73666572222c227469636b223a22656f7373222c22616d74223a223130227d
 contract BridgeEORC20 is IERC7583, Ownable {
-    string  public bridgeAccount = "bridge.eorc";
+    address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
     address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
+    string  public bridgeAccount = "bridge.eorc";
     uint256 public id = 0;
 
     constructor() Ownable(bridgeAddress) {}
@@ -36,13 +37,13 @@ contract BridgeEORC20 is IERC7583, Ownable {
     // =================
     // handles incoming inscriptions
     fallback() external payable {
-        require(tx.origin == msg.sender, "contracts not allowed");
+        address owner = _msgSender();
+        require(tx.origin == owner, "contracts not allowed");
 
         // append `from` sender with message calldata
-        bytes memory data = abi.encodePacked(msg.sender, msg.data);
+        bytes memory data = abi.encodePacked(owner, msg.data);
 
         // push calldata to EOS Native
-        address evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
         (bool success, ) = evmAddress.call{value: msg.value}(
             abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, data )
         );
