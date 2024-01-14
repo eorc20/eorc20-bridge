@@ -2,6 +2,10 @@
 #include <eosio/system.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/singleton.hpp>
+#include <nlohmann/json.hpp>
+#include <utils/utils.hpp>
+
+using json = nlohmann::json;
 
 using namespace eosio;
 using namespace std;

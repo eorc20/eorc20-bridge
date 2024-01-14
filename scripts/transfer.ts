@@ -1,5 +1,5 @@
 import { Address } from "viem";
-import { mint } from "./abi.js"
+import { transfer } from "./abi.js"
 import { transact } from "./transact.js";
 
 // CLI
@@ -12,5 +12,5 @@ if ( !to || !amount ) {
 }
 
 // push transaction
-const action = mint(to, amount);
+const action = transfer(to, amount);
 await transact([action]);
