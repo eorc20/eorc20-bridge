@@ -15,7 +15,6 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
     address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
     string  public bridgeAccount = "bridge.eorc";
-    uint256 public egressFee = 0;
     uint256 public id = 0;
 
     constructor(
@@ -25,10 +24,6 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
 
     function decimals() public view virtual override returns (uint8) {
         return 0;
-    }
-
-    function setFee(uint256 _egressFee) public onlyOwner {
-        egressFee = _egressFee;
     }
 
     function mint(address to, uint256 value) public onlyOwner {
@@ -53,7 +48,6 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         // ignore mint and burn
         if (from == address(0) || to == address(0)) return;
         if (_isReservedAddress(to)) {
-            require(msg.value == egressFee, "incorrect egress bridge fee");
             _notifyBridge(from, to, value);
             _burn(to, value);
         }
@@ -62,7 +56,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     function _notifyBridge(address from, address to, uint256 value) internal {
         bytes memory receiver_msg = abi.encodeWithSignature("transferFrom(address,address,uint256)", from, to, value);
         (bool success, ) = evmAddress.call{value: msg.value}(abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, receiver_msg ));
-        if (!success) { revert(); }
+        if (!success) { revert("error sending bridge message"); }
     }
 
     // Inscription events on Transfer
