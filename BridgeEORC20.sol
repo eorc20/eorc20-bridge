@@ -67,10 +67,10 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
 
     // Inscription events on Transfer
     function _inscribe(address from, address to, uint256 value) internal {
-        id++;
         bytes memory data = abi.encodePacked('data:,{"p":"eorc20","op":"transfer","tick":"', symbol(), '","amt":"', Strings.toString(value), '"}');
         emit Inscribe( id, data );
         emit TransferIns( from, to, id );
+        id++;
     }
 
     // This function is executed when a contract receives plain Ether (without data)
