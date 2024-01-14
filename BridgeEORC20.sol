@@ -54,17 +54,22 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     }
 
     function _notifyBridge(address from, address to, uint256 value) internal {
-        bytes memory receiver_msg = abi.encodeWithSignature("transferFrom(address,address,uint256)", from, to, value);
+        bytes memory data = transferOp(symbol(), value);
+        bytes memory receiver_msg = abi.encodePacked(from, to, data);
         (bool success, ) = evmAddress.call{value: msg.value}(abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, receiver_msg ));
         if (!success) { revert("error sending bridge message"); }
     }
 
     // Inscription events on Transfer
     function _inscribe(address from, address to, uint256 value) internal {
-        bytes memory data = abi.encodePacked('data:,{"p":"eorc20","op":"transfer","tick":"', symbol(), '","amt":"', Strings.toString(value), '"}');
+        bytes memory data = transferOp(symbol(), value);
         emit Inscribe( id, data );
         emit TransferIns( from, to, id );
         id++;
+    }
+
+    function transferOp(string memory tick, uint256 value) internal pure returns (bytes memory) {
+        return abi.encodePacked('data:,{"p":"eorc20","op":"transfer","tick":"', tick, '","amt":"', Strings.toString(value), '"}');
     }
 
     // This function is executed when a contract receives plain Ether (without data)
@@ -77,11 +82,12 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     // data:,{"p":"eorc20","op":"transfer","tick":"eoss","amt":"10"}
     // 0x646174613a2c7b2270223a22656f72633230222c226f70223a227472616e73666572222c227469636b223a22656f7373222c22616d74223a223130227d
     fallback() external payable {
-        address owner = _msgSender();
-        require(tx.origin == owner, "contracts not allowed");
+        address from = _msgSender();
+        address to = address(this);
+        require(tx.origin == from, "contracts not allowed");
 
         // append `from` sender with message calldata
-        bytes memory receiver_msg = abi.encodePacked(owner, _msgData());
+        bytes memory receiver_msg = abi.encodePacked(from, to, _msgData());
 
         // push calldata to EOS Native
         (bool success, ) = evmAddress.call{value: msg.value}(abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, receiver_msg ));

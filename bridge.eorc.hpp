@@ -28,9 +28,13 @@ public:
 
     [[eosio::action]]
     void onbridgemsg(const bridge_message_t message);
+
+    [[eosio::action]]
+    void test(const bytes data);
 private:
     checksum256 make_key(const string str);
     checksum256 make_key(const bytes data);
     checksum256 make_key(const uint8_t *ptr, const size_t len);
     checksum256 get_trx_id();
+    void handle_message(const bytes data);
 };
