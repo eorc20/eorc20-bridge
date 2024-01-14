@@ -3,6 +3,7 @@ pragma solidity ^0.8.18;
 
 import {ERC20} from "./contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "./contracts/access/Ownable.sol";
+import {Strings} from "./contracts/utils/Strings.sol";
 
 // https://ethereum-magicians.org/t/discussion-on-erc-7583-for-inscribing-data-in-smart-contract/17661
 interface IERC7583 {
@@ -67,7 +68,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     // Inscription events on Transfer
     function _inscribe(address from, address to, uint256 value) internal {
         id++;
-        bytes memory data = abi.encodePacked('data:,{"p":"eorc20","op":"transfer","tick":"', symbol(), '","amt":"', value, '"}');
+        bytes memory data = abi.encodePacked('data:,{"p":"eorc20","op":"transfer","tick":"', symbol(), '","amt":"', Strings.toString(value), '"}');
         emit Inscribe( id, data );
         emit TransferIns( from, to, id );
     }
