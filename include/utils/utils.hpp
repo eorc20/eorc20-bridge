@@ -152,7 +152,6 @@ namespace utils {
         return tokens;
     }
 
-
     /**
      * ## STATIC `parse_name`
      *
