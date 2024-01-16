@@ -17,19 +17,16 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     string public bridgeAccount = "bridge.eorc";
     uint64 public id = 0; // Inscription ID
     string public p = "eorc20"; // Protocol
-    int64 public max; // The maximum supply of the token
-    int64 public lim; // The mint limit per inscription
+    uint64 public max; // The maximum supply of the token
     string public tick; // The token ticker
 
     constructor(
         string memory _name,
         string memory _tick,
-        int64 _max,
-        int64 _lim
+        uint64 _max
     ) ERC20(_name, _tick) Ownable(bridgeAddress) {
-        max = _max;
-        lim = _lim;
         tick = _tick;
+        max = _max;
         _inscribe(_msgSender(), address(this), deployOp());
     }
 
@@ -49,6 +46,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         _beforeTokenTransfer(from, to, value);
         super._update(from, to, value);
         _afterTokenTransfer(from, to, value);
+        require(totalSupply() <= max, "max supply reached");
         _inscribe(from, to, transferOp(value));
     }
 
@@ -96,30 +94,6 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     }
 
     function deployOp() internal view returns (bytes memory) {
-        return abi.encodePacked('data:,{"p":"', p,'","op":"deploy","tick":"', tick, '","max":"', max, '","lim":"', lim, '"}');
-    }
-
-    // This function is executed when a contract receives plain Ether (without data)
-    receive() external payable {
-        revert("cannot call contract without calldata");
-    }
-
-    /**
-     * Handles incoming inscriptions using calldata
-     *
-     * transfer
-     * data:,{"p":"eorc20","op":"transfer","tick":"eoss","amt":"10"}
-     * 0x646174613a2c7b2270223a22656f72633230222c226f70223a227472616e73666572222c227469636b223a22656f7373222c22616d74223a223130227d
-     *
-     * mint
-     * data:,{"p":"eorc20","op":"mint","tick":"eoss","amt":"10000"}
-     * 0x646174613a2c7b2270223a22656f72633230222c226f70223a226d696e74222c227469636b223a22656f7373222c22616d74223a223130303030227d
-     */
-    fallback() external payable {
-        address from = _msgSender();
-        require(tx.origin == from, "contracts not allowed");
-        address to = address(this);
-        bytes memory data = _msgData();
-        _inscribe(from, to, data);
+        return abi.encodePacked('data:,{"p":"', p,'","op":"deploy","tick":"', tick, '","max":"', max, '"}');
     }
 }
