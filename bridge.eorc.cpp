@@ -16,15 +16,18 @@ void bridge::test(bytes data) {
 
 bridge::inscription_data bridge::parse_inscription_data(const bytes data)
 {
-    const string from = bytesToHexString(bytes{data.begin(), data.begin() + 20});
-    const string to = bytesToHexString(bytes{data.begin() + 20, data.begin() + 40});
+    // extract bridge message bytes data
+    const bytes from = {data.begin(), data.begin() + 20};
+    const bytes to = {data.begin() + 20, data.begin() + 40};
+    const uint64_t id = {data.begin() + 40, data.begin() + 48};
+    const string calldata = {data.begin() + 48, data.end()};
 
-    // std::optional<uint64_t> dest_acc = silkworm::is_reserved_address(bytes{data.begin() + 20, data.begin() + 40});
-    std::optional<uint64_t> to_reserved = silkworm::extract_reserved_address(bytes{data.begin() + 20, data.begin() + 40});
-    eosio::name to_account(*to_reserved);
+    // parse reserved addresses
+    const name from_account = *silkworm::extract_reserved_address(from);
+    const name to_account = *silkworm::extract_reserved_address(to);
 
-    const string calldata = {data.begin() + 40, data.end()};
-    const string inscription = utils::split( calldata, "data:," )[0];
+    // parse inscription
+    const string inscription = {calldata.begin() + 6, calldata.end()}; // start after "data:,"
     check(inscription.size() > 0, "inscription is empty");
 
     const json j = json::parse(inscription);
@@ -35,6 +38,7 @@ bridge::inscription_data bridge::parse_inscription_data(const bytes data)
 
     print(
         "\nfrom: ", from,
+        "\nfrom_account: ", from_account,
         "\nto: ", to,
         "\nto_account: ", to_account,
         "\np: ", p,

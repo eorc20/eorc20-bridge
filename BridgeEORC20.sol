@@ -11,7 +11,7 @@ interface IERC7583 {
     event Inscribe(uint64 indexed id, bytes data);
 }
 
-contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
+contract BridgeEORC20 is ERC20, IERC7583 {
     address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
     address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
     string public bridgeAccount = "bridge.eorc";
@@ -24,29 +24,19 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         string memory _name,
         string memory _tick,
         uint64 _max
-    ) ERC20(_name, _tick) Ownable(bridgeAddress) {
+    ) ERC20(_name, _tick) {
         tick = _tick;
         max = _max;
-        _inscribe(_msgSender(), address(this), deployOp());
+        _mint(bridgeAddress, _max);
     }
 
     function decimals() public view virtual override returns (uint8) {
         return 0;
     }
 
-    function mint(address to, uint256 value) public onlyOwner {
-        _mint(to, value);
-    }
-
-    function burn(uint256 value) public {
-        _burn(_msgSender(), value);
-    }
-
     function _update(address from, address to, uint256 value) override internal {
-        _beforeTokenTransfer(from, to, value);
         super._update(from, to, value);
         _afterTokenTransfer(from, to, value);
-        require(totalSupply() <= max, "max supply reached");
         _inscribe(from, to, transferOp(value));
     }
 
@@ -54,20 +44,9 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
         return ((uint160(addr) & uint160(0xFffFfFffffFfFFffffFFFffF0000000000000000)) == uint160(0xBBbbBbBbbBbbBbbbBbbbBBbb0000000000000000));
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 value) internal {
-        // ignore mint and burn
-        if (from == address(0) || to == address(0)) return;
-
-        if (from == bridgeAddress) {
-            require(_msgSender() == bridgeAddress, "unauthorized bridge sender");
-            _mint(from, value);
-        }
-    }
-
     function _afterTokenTransfer(address from, address to, uint256 value) internal {
         // ignore mint and burn
         if (from == address(0) || to == address(0)) return;
-
         if (_isReservedAddress(to)) {
             _burn(to, value);
         }
@@ -82,7 +61,7 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
     }
 
     function _notifyBridge(address from, address to, bytes memory data) internal {
-        bytes memory receiver_msg = abi.encodePacked(id, from, to, data);
+        bytes memory receiver_msg = abi.encodePacked(from, to, id, data);
         (bool success, ) = evmAddress.call{value: msg.value}(
             abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, receiver_msg )
         );
@@ -91,9 +70,5 @@ contract BridgeEORC20 is ERC20, Ownable, IERC7583 {
 
     function transferOp(uint256 value) internal view returns (bytes memory) {
         return abi.encodePacked('data:,{"p":"', p,'","op":"transfer","tick":"', tick, '","amt":"', Strings.toString(value), '"}');
-    }
-
-    function deployOp() internal view returns (bytes memory) {
-        return abi.encodePacked('data:,{"p":"', p,'","op":"deploy","tick":"', tick, '","max":"', max, '"}');
     }
 }
