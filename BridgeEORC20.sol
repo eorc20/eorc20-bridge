@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 
 import {ERC20} from "./contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "./contracts/access/Ownable.sol";
 import {Strings} from "./contracts/utils/Strings.sol";
 
 // https://ethereum-magicians.org/t/discussion-on-erc-7583-for-inscribing-data-in-smart-contract/17661
@@ -10,7 +11,7 @@ interface IERC7583 {
     event Inscribe(uint64 indexed id, bytes data);
 }
 
-contract BridgeEORC20 is ERC20, IERC7583 {
+contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
     address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
     string public bridgeAccount = "bridge.eorc";
@@ -23,7 +24,7 @@ contract BridgeEORC20 is ERC20, IERC7583 {
         string memory _name,
         string memory _tick,
         uint64 _max
-    ) ERC20(_name, _tick) {
+    ) ERC20(_name, _tick) Ownable(bridgeAddress) {
         tick = _tick;
         max = _max;
         _mint(bridgeAddress, _max);
@@ -33,8 +34,7 @@ contract BridgeEORC20 is ERC20, IERC7583 {
         return 0;
     }
 
-    function mint(address to, uint256 value) public {
-        require(_msgSender() == bridgeAddress, "BridgeEORC20: only bridge can mint");
+    function mint(address to, uint256 value) public onlyOwner {
         _mint(to, value);
     }
 
