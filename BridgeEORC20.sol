@@ -2,7 +2,6 @@
 pragma solidity ^0.8.18;
 
 import {ERC20} from "./contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "./contracts/access/Ownable.sol";
 import {Strings} from "./contracts/utils/Strings.sol";
 
 // https://ethereum-magicians.org/t/discussion-on-erc-7583-for-inscribing-data-in-smart-contract/17661
@@ -32,6 +31,15 @@ contract BridgeEORC20 is ERC20, IERC7583 {
 
     function decimals() public view virtual override returns (uint8) {
         return 0;
+    }
+
+    function mint(address to, uint256 value) public {
+        require(_msgSender() == bridgeAddress, "BridgeEORC20: only bridge can mint");
+        _mint(to, value);
+    }
+
+    function burn(uint256 value) public {
+        _burn(_msgSender(), value);
     }
 
     function _update(address from, address to, uint256 value) override internal {
