@@ -12,9 +12,7 @@ interface IERC7583 {
 }
 
 contract BridgeEORC20 is ERC20, IERC7583, Ownable {
-    address public evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
-    address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // reserved address for bridge.eorc
-    string public bridgeAccount = "bridge.eorc";
+    address private evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
     uint64 public id = 0; // Inscription ID
     string public p = "eorc20"; // Protocol
     uint64 public max; // The maximum supply of the token
@@ -24,7 +22,8 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
         string memory _name,
         string memory _tick,
         uint64 _max
-    ) ERC20(_name, _tick) Ownable(bridgeAddress) {
+    ) ERC20(_name, _tick) Ownable(_msgSender()) {
+        require(_isReservedAddress(_msgSender()), "only reserved address can deploy");
         tick = _tick;
         max = _max;
     }
@@ -41,20 +40,19 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
         _burn(_msgSender(), value);
     }
 
-    function _update(address from, address to, uint256 value) override internal {
-        super._update(from, to, value);
-        _inscribe(from, to, transferOp(value));
-        _afterTokenTransfer(from, to, value);
-        require(totalSupply() <= max, "max supply reached");
-    }
-
     function _isReservedAddress(address addr) internal pure returns (bool) {
         return ((uint160(addr) & uint160(0xFffFfFffffFfFFffffFFFffF0000000000000000)) == uint160(0xBBbbBbBbbBbbBbbbBbbbBBbb0000000000000000));
     }
 
-    function _afterTokenTransfer(address from, address to, uint256 value) internal {
-        // ignore mint and burn
-        if (from == address(0) || to == address(0)) return;
+    function _update(address from, address to, uint256 value) override internal {
+        super._update(from, to, value);
+        require(totalSupply() <= max, "max supply reached");
+        _inscribe(from, to, transferOp(value));
+        _afterTokenTransfer(to, value);
+    }
+
+    function _afterTokenTransfer(address to, uint256 value) internal {
+        // all transfers to reserved address will be burned and minted on Native via Bridge
         if (_isReservedAddress(to)) {
             _burn(to, value);
         }
