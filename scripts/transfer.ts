@@ -12,5 +12,4 @@ if ( !to || !amount ) {
 }
 
 // push transaction
-const action = transfer(to, amount);
-await transact([action]);
+await transact([transfer(to, amount)]);

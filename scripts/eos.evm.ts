@@ -20,7 +20,7 @@ export function pushtx(serializedTransaction: Address): AnyAction {
     }
 }
 
-export function call(session: Session, to: Address, value: bigint, data?: Address): AnyAction {
+export function call(session: Session, to: Address|null, value: bigint, data?: Address): AnyAction {
     // console.info("call", {from: session.actor.toString(), to, value})
     const valueHex = bytesToHex(numberToBytes(value, {size: 32}), {size: 32}).replace(/^0x/,"");
     return {
@@ -29,9 +29,9 @@ export function call(session: Session, to: Address, value: bigint, data?: Addres
         authorization: [session.permissionLevel],
         data: {
             from: session.actor,
-            to: to.replace(/^0x/,""),
+            to: to ? to.replace(/^0x/,"") : "",
             value: valueHex,
-            data: data?.replace(/^0x/,"") ?? "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            data: data?.replace(/^0x/,"") ?? "0000000000000000000000000000000000000000000000000000000000000000",
             gas_limit: gas,
         }
     }

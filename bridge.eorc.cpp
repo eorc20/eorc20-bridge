@@ -19,31 +19,33 @@ bridge::inscription_data bridge::parse_inscription_data(const bytes data)
     // extract bridge message bytes data
     const bytes from = {data.begin(), data.begin() + 20};
     const bytes to = {data.begin() + 20, data.begin() + 40};
-    const string calldata = {data.begin() + 48, data.end()};
+    const string calldata = {data.begin() + 40, data.end()};
 
     // parse reserved addresses
     const name from_account = name{*silkworm::extract_reserved_address(from)};
     const name to_account = name{*silkworm::extract_reserved_address(to)};
 
     // parse inscription
-    const string inscription = {calldata.begin() + 6, calldata.end()}; // start after "data:,"
+    const string inscription = utils::split( calldata, "data:," )[0];
     check(inscription.size() > 0, "inscription is empty");
 
     const json j = json::parse(inscription);
     const string p = j["p"];
     const string op = j["op"];
     const string tick = j["tick"];
-    const string amt = j["amt"];
+    const uint64_t amt = std::stoull(string{j["amt"]});
 
     print(
         "\nfrom: ", bytesToHexString(from),
         "\nfrom_account: ", from_account,
         "\nto: ", bytesToHexString(to),
         "\nto_account: ", to_account,
+        "\ncalldata: ", calldata,
+        "\ninscription: ", inscription,
         "\np: ", p,
         "\nop: ", op,
         "\ntick: ", tick,
         "\namt: ", amt
     );
-    return {from, to, p, op, tick, amt};
+    return {from, from_account, to, to_account, p, op, tick, amt};
 }

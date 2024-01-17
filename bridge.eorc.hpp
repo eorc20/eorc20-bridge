@@ -24,11 +24,13 @@ public:
 
     struct inscription_data {
         bytes       from;
+        name        from_account;
         bytes       to;
+        name        to_account;
         string      p;
         string      op;
         string      tick;
-        string      amt;
+        uint64_t    amt;
     };
 
     struct bridge_message_v0 {
