@@ -1,20 +1,24 @@
-# `EORC-20` **Bridge**
-![License](https://img.shields.io/github/license/pinax-network/eorc20-bridge)
-[![Antelope CDT](https://github.com/pinax-network/eorc20-bridge/actions/workflows/release.yml/badge.svg)](https://github.com/pinax-network/eorc20-bridge/actions/workflows/release.yml)
-[![Blanc++ Vert](https://github.com/pinax-network/eorc20-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/pinax-network/eorc20-bridge/actions/workflows/ci.yml)
+# `EORC-20` **Bridge** ![License](https://img.shields.io/github/license/eorc20/eorc20-bridge)
 
-> Send [EORC-20 NFT Inscriptions](https://eos.atomichub.io/market?collection_name=eorc&order=asc&schema_name=inscriptions&sort=price&state=1&symbol=EOS) to [EOS EVM](https://eosnetwork.com/eos-evm/).
+> `EORC-20` to `ERC-20` Inscriptions [EOS EVM](https://eosnetwork.com/eos-evm/) Bridge.
 
-## Quickstart
+## Token Contracts
 
-1. Send NFT to `bridge.eorc`
+### EOS EVM
 
-```bash
-# Send NFT to contract using Bitcoin Bech32 address as memo
-$ cleos push action atomicassets transfer '["myaccount", "brdige.eorc", [2199024546311], "0x856ed111f878a6CC5c0E7784E5988f2DD9388181"]' -p myaccount
-```
+**Tokens**
+| Symbol | Name  | Decimals | Address |
+| ----- | ------ | ----------| ------- |
+|`eoss` | `EOSS EORC-20` | 0 | [0x000.... (TBD)](https://explorer.evm.eosnetwork.com/address/0x000)
+
+### EOS Native
+
+**Tokens**
+| Symbol | Precision | Account |
+| ------ | ----------| ------- |
+| `EOSS` | 0         | [token.eorc](https://bloks.io/account/token.eorc)
 
 ## Requirements
 
 - [Setup Metamask](https://docs.eosnetwork.com/evm/quick-start/setup-metamask) for EOS EVM
-- [AtomicAssets](https://atomichub.io/) account
+- [Setup Anchor](https://www.greymass.com/anchor) for EOS Native
