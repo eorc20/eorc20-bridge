@@ -43,9 +43,9 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
 
     function _update(address from, address to, uint256 value) override internal {
         super._update(from, to, value);
+        _inscribe(from, to, transferOp(value));
         _afterTokenTransfer(from, to, value);
         require(totalSupply() <= max, "max supply reached");
-        _inscribe(from, to, transferOp(value));
     }
 
     function _isReservedAddress(address addr) internal pure returns (bool) {

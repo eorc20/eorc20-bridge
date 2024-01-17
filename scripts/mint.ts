@@ -6,8 +6,6 @@ import { transact } from "./transact.js";
 const to = process.argv[2] as Address;
 const amount = BigInt(process.argv[3] ?? 0);
 
-console.log(amount);
-
 if ( !to || !amount ) {
     console.error("Usage: bun scripts/mint.ts <to> <amount>");
     process.exit(1);
