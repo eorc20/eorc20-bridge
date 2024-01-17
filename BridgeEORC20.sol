@@ -13,6 +13,8 @@ interface IERC7583 {
 
 contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     address private evmAddress = 0xbBBBbBbbbBBBBbbbbbbBBbBB5530EA015b900000; // reserved address for eosio.evm
+    address public bridgeAddress = 0xbBbbBBbBbbBBbbbbbbbbBbBB3Ddc96280Aa5D000; // Bridge contract address
+    string public bridgeAccount = "bridge.eorc";
     uint64 public id = 0; // Inscription ID
     string public p = "eorc20"; // Protocol
     uint64 public max; // The maximum supply of the token
@@ -22,8 +24,7 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
         string memory _name,
         string memory _tick,
         uint64 _max
-    ) ERC20(_name, _tick) Ownable(_msgSender()) {
-        require(_isReservedAddress(_msgSender()), "only reserved address can deploy");
+    ) ERC20(_name, _tick) Ownable(bridgeAddress) {
         tick = _tick;
         max = _max;
     }
