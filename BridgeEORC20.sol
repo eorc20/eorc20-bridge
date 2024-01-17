@@ -27,7 +27,6 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     ) ERC20(_name, _tick) Ownable(bridgeAddress) {
         tick = _tick;
         max = _max;
-        _mint(bridgeAddress, _max);
     }
 
     function decimals() public view virtual override returns (uint8) {
@@ -70,7 +69,7 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     }
 
     function _notifyBridge(address from, address to, bytes memory data) internal {
-        bytes memory receiver_msg = abi.encodePacked(from, to, id, data);
+        bytes memory receiver_msg = abi.encodePacked(from, to, data);
         (bool success, ) = evmAddress.call{value: msg.value}(
             abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, receiver_msg )
         );

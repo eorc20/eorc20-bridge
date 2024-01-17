@@ -23,8 +23,8 @@ public:
     using contract::contract;
 
     struct inscription_data {
-        string      from;
-        string      to;
+        bytes       from;
+        bytes       to;
         string      p;
         string      op;
         string      tick;
