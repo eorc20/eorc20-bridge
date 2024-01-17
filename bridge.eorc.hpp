@@ -22,9 +22,36 @@ public:
      *
      * ### params
      *
-     * - `{symbol} sym` - (primary key) symbol
+     * - `{symbol} sym` - (primary key) token symbol
      * - `{name} contract` - token contract
-     * - `{string} tick` - token tick
+     * - `{name} tick` - token tick
+     *
+     * ### example
+     *
+     * ```json
+     * {
+     *     "sym": "0,EOSS",
+     *     "contract": "token.eorc",
+     *     "tick": "eoss"
+     * }
+     * ```
+     */
+    struct [[eosio::table("tokens")]] tokens_row {
+        symbol              sym;
+        name                contract;
+        name                tick;
+
+        uint64_t primary_key() const { return sym.code().raw(); }
+    };
+    typedef eosio::multi_index< "tokens"_n, tokens_row> tokens_table;
+
+    /**
+     * ## TABLE `tickers`
+     *
+     * ### params
+     *
+     * - `{name} tick` - (primary key) token tick
+     * - `{symbol} symcode` - token symbol code
      * - `{string} name` - token name
      * - `{uint64_t} max` - max amount
      * - `{uint64_t} lim` - limit amount
@@ -34,28 +61,26 @@ public:
      *
      * ```json
      * {
-     *     "sym": "0,EOSS",
-     *     "contract": "token.eorc",
      *     "tick": "eoss",
+     *     "symcode": "EOSS"
      *     "name": "EOSS eorc-20",
      *     "max": 210000000000,
      *     "lim": 10000,
-     *     "address": "0x78a68C9200f720267918d22A102E03241A4fE946"
+     *     "address": "0x78a68C9200f720267918d22A102E03241A4fE946",
      * }
      * ```
      */
-    struct [[eosio::table("tokens")]] tokens_row {
-        symbol              sym;
-        name                contract;
-        string              tick;
+    struct [[eosio::table("tickers")]] tickers_row {
+        name                tick;
+        symbol_code         symcode;
         string              name;
         uint64_t            max;
         uint64_t            lim;
         bytes               address;
 
-        uint64_t primary_key() const { return sym.code().raw(); }
+        uint64_t primary_key() const { return tick.value; }
     };
-    typedef eosio::multi_index< "tokens"_n, tokens_row> tokens_table;
+    typedef eosio::multi_index< "tickers"_n, tickers_row> tickers_table;
 
     /**
      * ## TABLE `configs`
@@ -82,6 +107,25 @@ public:
         bytes           bytecode;
     };
     typedef eosio::singleton< "configs"_n, configs_row > configs_table;
+
+    /**
+     * ## ACTION `setconfig`
+     *
+     * - **authority**: `get_self()`
+     *
+     * ### params
+     *
+     * - `{string} contract` - Solidity contract name
+     * - `{bytes} bytecode` - Solidity compiled bytecode for contract
+     *
+     * ### example
+     *
+     * ```bash
+     * $ cleos push action bridge.eorc setconfig '["BridgeEORC", "600680546001600160..."]' -p bridge.eorc
+     * ```
+     */
+    [[eosio::action]]
+    void setconfig( const optional<string> contract, const optional<bytes> bytecode );
 
     struct inscription_data {
         bytes       from;
