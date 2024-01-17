@@ -18,15 +18,18 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     uint64 public id = 0; // Inscription ID
     string public p = "eorc20"; // Protocol
     uint64 public max; // The maximum supply of the token
+    uint64 public lim; // Limit mint tokens per transaction
     string public tick; // The token ticker
 
     constructor(
         string memory _name,
         string memory _tick,
-        uint64 _max
+        uint64 _max,
+        uint64 _lim
     ) ERC20(_name, _tick) Ownable(bridgeAddress) {
         tick = _tick;
         max = _max;
+        lim = _lim;
     }
 
     function decimals() public view virtual override returns (uint8) {
