@@ -4,11 +4,6 @@
 #include <eosio/singleton.hpp>
 #include <nlohmann/json.hpp>
 #include <utils/utils.hpp>
-// #include <endian.h>
-// #include <silkworm/core/common/utils.hpp>
-// #include <evm_runtime/utils.cpp>
-
-// to_address
 
 using json = nlohmann::json;
 
@@ -21,6 +16,72 @@ class [[eosio::contract("bridge.eorc")]] bridge : public eosio::contract {
 
 public:
     using contract::contract;
+
+    /**
+     * ## TABLE `tokens`
+     *
+     * ### params
+     *
+     * - `{symbol} sym` - (primary key) symbol
+     * - `{name} contract` - token contract
+     * - `{string} tick` - token tick
+     * - `{string} name` - token name
+     * - `{uint64_t} max` - max amount
+     * - `{uint64_t} lim` - limit amount
+     * - `{bytes} address` - token address
+     *
+     * ### example
+     *
+     * ```json
+     * {
+     *     "sym": "0,EOSS",
+     *     "contract": "token.eorc",
+     *     "tick": "eoss",
+     *     "name": "EOSS eorc-20",
+     *     "max": 210000000000,
+     *     "lim": 10000,
+     *     "address": "0x78a68C9200f720267918d22A102E03241A4fE946"
+     * }
+     * ```
+     */
+    struct [[eosio::table("tokens")]] tokens_row {
+        symbol              sym;
+        name                contract;
+        string              tick;
+        string              name;
+        uint64_t            max;
+        uint64_t            lim;
+        bytes               address;
+
+        uint64_t primary_key() const { return sym.code().raw(); }
+    };
+    typedef eosio::multi_index< "tokens"_n, tokens_row> tokens_table;
+
+    /**
+     * ## TABLE `configs`
+     *
+     * ### params
+     *
+     * - `{string} contract` - Solidity contract name
+     * - `{checksum256} hash` - Solidity compiled bytecode hash
+     * - `{bytes} bytecode` - Solidity compiled bytecode for contract
+     *
+     * ### example
+     *
+     * ```json
+     * {
+     *     "contract": "BridgeEORC",
+     *     "hash": "77bc64e6bfe1907f1...",
+     *     "bytecode": "600680546001600160..."
+     * }
+     * ```
+     */
+    struct [[eosio::table("configs")]] configs_row {
+        string          contract;
+        checksum256     hash;
+        bytes           bytecode;
+    };
+    typedef eosio::singleton< "configs"_n, configs_row > configs_table;
 
     struct inscription_data {
         bytes       from;
