@@ -6,6 +6,5 @@ import { transact } from "./transact.js";
 const name = "EOSS eorc-20"
 const tick = "eoss"
 const max = 210000000000n
-const lim = 10000n;
 
-await transact([deploy(name, tick, max, lim, bytecode)]);
+await transact([deploy(name, tick, max, bytecode)]);
