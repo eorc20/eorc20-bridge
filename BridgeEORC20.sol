@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "./contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "./contracts/access/Ownable.sol";
-import {Strings} from "./contracts/utils/Strings.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 // https://ethereum-magicians.org/t/discussion-on-erc-7583-for-inscribing-data-in-smart-contract/17661
 interface IERC7583 {

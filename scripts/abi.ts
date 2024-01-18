@@ -7,9 +7,9 @@ import { call } from "./eos.evm.js";
 export const wagmiAbi = [
     {
         inputs: [
-            { name: "_name", type: "string" },
-            { name: "_tick", type: "string" },
-            { name: "_max", type: "uint64" },
+            { name: "name_", type: "string" },
+            { name: "symbol_", type: "string" },
+            { name: "max_", type: "uint64" },
         ],
         stateMutability: "nonpayable",
         type: "constructor",

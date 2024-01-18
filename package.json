@@ -5,6 +5,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "5.0.1",
     "@wharfkit/session": "latest",
     "@wharfkit/wallet-plugin-privatekey": "latest",
     "viem": "latest"
