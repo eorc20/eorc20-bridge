@@ -36,12 +36,14 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
         return 0;
     }
 
-    function mint(address to, uint256 value) public onlyOwner {
+    function mint(address to, uint256 value) public onlyOwner returns (bool) {
         _mint(to, value);
+        return true;
     }
 
-    function burn(uint256 value) public {
+    function burn(uint256 value) public returns (bool) {
         _burn(_msgSender(), value);
+        return true;
     }
 
     function _isReservedAddress(address addr) internal pure returns (bool) {
