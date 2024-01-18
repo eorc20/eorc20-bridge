@@ -18,16 +18,22 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     uint64 public id = 0; // Inscription ID
     string public p = "eorc20"; // Inscription Protocol
     uint64 public max; // The maximum supply of the token
+    uint64 public lim; // The limit of the token per mint
     string public tick; // The token ticker
 
     constructor(
-        string memory _name,
-        string memory _tick,
-        uint64 _max
-    ) ERC20(_name, _tick) Ownable(bridgeAddress) {
-        require(bytes(_tick).length > 0, "tick is empty");
-        tick = _tick;
-        max = _max;
+        string memory name_,
+        string memory tick_,
+        uint64 max_,
+        uint64 lim_
+    ) ERC20(name_, tick_) Ownable(bridgeAddress) {
+        require(bytes(tick_).length > 0, "tick is empty");
+        require(max_ > 0, "max is zero");
+        require(lim <= max_, "lim is greater than max");
+        tick = tick_;
+        max = max_;
+        lim = lim_;
+        _inscribe(_msgSender(), address(this), deployOp());
     }
 
     function decimals() public view virtual override returns (uint8) {
@@ -80,5 +86,9 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
 
     function transferOp(uint256 value) internal view returns (bytes memory) {
         return abi.encodePacked('data:,{"p":"', p,'","op":"transfer","tick":"', tick, '","amt":"', Strings.toString(value), '"}');
+    }
+
+    function deployOp() internal view returns (bytes memory) {
+        return abi.encodePacked('data:,{"p":"', p,'","op":"deploy","tick":"', tick, '","max":"', Strings.toString(max), '","lim":"', Strings.toString(lim), '"}');
     }
 }
