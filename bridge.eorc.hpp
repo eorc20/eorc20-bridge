@@ -147,8 +147,15 @@ public:
     [[eosio::action]]
     void test(const bytes data);
 
+    [[eosio::on_notify("*::transfer")]]
+    void on_transfer_token( const name from,
+                            const name to,
+                            const asset quantity,
+                            const string memo );
+
 private:
     bridge_message_data parse_bridge_message_data( const bytes data );
     bridge_message_calldata parse_bridge_message_calldata(const string calldata);
-    void check_tick(const string tick, const bytes sender );
+    tokens_row get_tick( const string tick );
+    tokens_row get_token( const symbol_code symcode, const name contract );
 };

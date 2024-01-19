@@ -1,6 +1,21 @@
 #include "bridge.eorc.hpp"
 #include "src/utils.cpp"
 
+[[eosio::on_notify("*::transfer")]]
+void bridge::on_transfer_token( const name from,
+                              const name to,
+                              const asset quantity,
+                              const string memo )
+{
+    // ignore outgoing transfer from self
+    if ( from == get_self() || to != get_self() || from == "eosio.ram"_n ) return;
+
+    const tokens_row token = get_token(quantity.symbol.code(), get_first_receiver());
+
+    // EOS EVM call data to mint
+    // const bytes receiver = bytes{memo};
+}
+
 [[eosio::action]]
 void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address )
 {
@@ -54,15 +69,25 @@ void bridge::pause( const bool paused )
 }
 
 [[eosio::action]]
-void bridge::onbridgemsg(const bridge_message_t message)
+void bridge::onbridgemsg( const bridge_message_t message )
 {
     const bridge_message_v0 &msg = std::get<bridge_message_v0>(message);
     check(msg.receiver == get_self(), "invalid message receiver");
     const bridge_message_data message_data = parse_bridge_message_data(msg.data);
     const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 
-    check_tick(inscription_data.tick, msg.sender);
     // validate inscription
+    const tokens_row token = get_tick(inscription_data.tick);
+    check(token.address == msg.sender, "invalid registered sender");
+
+    // only handle EVM=>Native reserved address transfers
+    if ( message_data.to_account ) {
+        print("\ntransfer to reserved address: ", message_data.to_account);
+        eosio::token::transfer_action transfer(token.contract, {get_self(), "active"_n});
+        const int64_t amount = inscription_data.amt;
+        check(amount == inscription_data.amt, "amount overflow");
+        transfer.send(get_self(), message_data.to_account, asset{amount, token.sym}, bytesToHexString(message_data.from));
+    }
 }
 
 [[eosio::action]]
@@ -120,10 +145,17 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     return {p, op, tick, amt};
 }
 
-void bridge::check_tick(const string tick, const bytes sender )
+bridge::tokens_row bridge::get_tick( const string tick )
 {
     tokens_table tokens(get_self(), get_self().value);
     auto index = tokens.get_index<"by.tick"_n>();
-    auto itr = index.find(to_checksum(tick));
-    check(itr != index.end() && itr->address == sender, "ERC-20 token not registerred");
+    return index.get(to_checksum(tick), "EORC-20 token not registerred");
+}
+
+bridge::tokens_row bridge::get_token( const symbol_code symcode, const name contract )
+{
+    tokens_table tokens(get_self(), get_self().value);
+    const auto token = tokens.get(symcode.raw(), "EORC-20 token not registerred");
+    check(token.contract == contract, "invalid token contract");
+    return token;
 }
