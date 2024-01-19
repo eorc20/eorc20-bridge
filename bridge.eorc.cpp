@@ -42,22 +42,16 @@ void bridge::deltoken( const symbol_code symcode )
     tokens.erase(token);
 }
 
-// [[eosio::action]]
-// void bridge::setconfig( const optional<string> contract, const optional<bytes> bytecode )
-// {
-//     require_auth(get_self());
-//     configs_table configs(get_self(), get_self().value);
-//     auto config = configs.get_or_default();
-//     if ( contract ) config.contract = *contract;
-//     if ( bytecode ) {
-//         config.bytecode = *bytecode;
-//         const auto hash = eosio::sha256( (const char*) &config.bytecode, sizeof( config.bytecode ));
-//         config.hash = hash;
-//     }
-//     check(config.contract.size() > 0, "contract name is empty");
-//     check(config.bytecode.size() > 0, "bytecode is empty");
-//     configs.set(config, get_self());
-// }
+[[eosio::action]]
+void bridge::pause( const bool paused )
+{
+    require_auth(get_self());
+    configs_table configs(get_self(), get_self().value);
+    auto config = configs.get_or_default();
+    check(config.paused != paused, "paused is unchanged");
+    config.paused = paused;
+    configs.set(config, get_self());
+}
 
 [[eosio::action]]
 void bridge::onbridgemsg(const bridge_message_t message)

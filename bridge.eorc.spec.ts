@@ -1,7 +1,6 @@
 import { TimePointSec, Name, Asset } from "@greymass/eosio";
 import { Blockchain } from "@proton/vert"
 import { describe, expect, test, beforeEach } from "bun:test";
-import { bytecode } from "./scripts/bytecode.js";
 
 // Vert EOS VM
 const blockchain = new Blockchain()
@@ -33,16 +32,14 @@ function getToken(symcode: string) {
   return contracts.bridge.tables.tokens(scope).getTableRow(primary_key);
 }
 
-// interface Configs {
-//   contract: string;
-//   hash: string;
-//   bytecode: string;
-// }
+interface Configs {
+  paused: boolean;
+}
 
-// function getConfigs() {
-//   const scope = Name.from(bridge_contract).value.value;
-//   return contracts.bridge.tables.configs(scope).getTableRows()[0] as Configs
-// }
+function getConfigs() {
+  const scope = Name.from(bridge_contract).value.value;
+  return contracts.bridge.tables.configs(scope).getTableRows()[0] as Configs
+}
 
 describe(bridge_contract, () => {
   test('token::create', async () => {
@@ -50,13 +47,13 @@ describe(bridge_contract, () => {
     await contracts.token.actions.create([token_contract, supply]).send();
   });
 
-  // test('setconfig', async () => {
-  //   const name = "BridgeEORC";
-  //   await contracts.bridge.actions.setconfig([name, bytecode.replace("0x", "")]).send();
-  //   const config = getConfigs();
-  //   expect(config.hash).toBe("e70acf9fbc08b7d81f8fa169d9f43dc8a2698655e252fff7834f0080d3be6490");
-  //   expect(config.contract).toBe(name);
-  // });
+  test('pause', async () => {
+    await contracts.bridge.actions.pause([true]).send();
+    expect(getConfigs().paused).toBe(true);
+
+    await contracts.bridge.actions.pause([false]).send();
+    expect(getConfigs().paused).toBe(false);
+  });
 
   test('regtoken', async () => {
     await contracts.bridge.actions.regtoken([symcode, token_contract, tick, name, max, address]).send();

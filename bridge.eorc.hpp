@@ -68,50 +68,25 @@ public:
         return sha256(str.c_str(), str.length());
     }
 
-    // /**
-    //  * ## TABLE `configs`
-    //  *
-    //  * ### params
-    //  *
-    //  * - `{string} contract` - Solidity contract name
-    //  * - `{checksum256} hash` - Solidity compiled bytecode hash
-    //  * - `{bytes} bytecode` - Solidity compiled bytecode for contract
-    //  *
-    //  * ### example
-    //  *
-    //  * ```json
-    //  * {
-    //  *     "contract": "BridgeEORC",
-    //  *     "hash": "e70acf9fbc08b7d81f8fa169d9f43dc8a2698655e252fff7834f0080d3be6490",
-    //  *     "bytecode": "600680546001600160..."
-    //  * }
-    //  * ```
-    //  */
-    // struct [[eosio::table("configs")]] configs_row {
-    //     string          contract;
-    //     checksum256     hash;
-    //     bytes           bytecode;
-    // };
-    // typedef eosio::singleton< "configs"_n, configs_row > configs_table;
-
-    // /**
-    //  * ## ACTION `setconfig`
-    //  *
-    //  * - **authority**: `get_self()`
-    //  *
-    //  * ### params
-    //  *
-    //  * - `{string} contract` - Solidity contract name
-    //  * - `{bytes} bytecode` - Solidity compiled bytecode for contract
-    //  *
-    //  * ### example
-    //  *
-    //  * ```bash
-    //  * $ cleos push action bridge.eorc setconfig '["BridgeEORC", "600680546001600160..."]' -p bridge.eorc
-    //  * ```
-    //  */
-    // [[eosio::action]]
-    // void setconfig( const optional<string> contract, const optional<bytes> bytecode );
+    /**
+     * ## TABLE `configs`
+     *
+     * ### params
+     *
+     * - `{bool} paused` - disables all actions if true
+     *
+     * ### example
+     *
+     * ```json
+     * {
+     *     "paused": false,
+     * }
+     * ```
+     */
+    struct [[eosio::table("configs")]] configs_row {
+        bool            paused = false;
+    };
+    typedef eosio::singleton< "configs"_n, configs_row > configs_table;
 
     /**
      * ## ACTION `regtoken`
@@ -138,6 +113,9 @@ public:
 
     [[eosio::action]]
     void deltoken( const symbol_code symcode );
+
+    [[eosio::action]]
+    void pause( const bool paused );
 
     struct bridge_message_calldata {
         string      p;
