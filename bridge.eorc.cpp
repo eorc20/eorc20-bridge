@@ -2,7 +2,7 @@
 #include "src/utils.cpp"
 
 [[eosio::action]]
-void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address )
+void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const string address )
 {
     require_auth(get_self());
 
@@ -12,7 +12,8 @@ void bridge::regtoken( const symbol_code symcode, const name contract, const str
     check(name.size() > 0, "name is empty");
     check(max > 0, "max must be greater than 0");
     check(address.size() > 0, "address is empty");
-    check(address.size() == 20, "address must be 20 bytes");
+    check(address.substr(0, 2) == "0x", "address must start with 0x");
+    check(address.size() == 42, "address must be 42 characters long");
 
     // token validation
     const asset supply = eosio::token::get_supply(contract, symcode);
@@ -42,22 +43,22 @@ void bridge::deltoken( const symbol_code symcode )
     tokens.erase(token);
 }
 
-[[eosio::action]]
-void bridge::setconfig( const optional<string> contract, const optional<bytes> bytecode )
-{
-    require_auth(get_self());
-    configs_table configs(get_self(), get_self().value);
-    auto config = configs.get_or_default();
-    if ( contract ) config.contract = *contract;
-    if ( bytecode ) {
-        config.bytecode = *bytecode;
-        const auto hash = eosio::sha256( (const char*) &config.bytecode, sizeof( config.bytecode ));
-        config.hash = hash;
-    }
-    check(config.contract.size() > 0, "contract name is empty");
-    check(config.bytecode.size() > 0, "bytecode is empty");
-    configs.set(config, get_self());
-}
+// [[eosio::action]]
+// void bridge::setconfig( const optional<string> contract, const optional<bytes> bytecode )
+// {
+//     require_auth(get_self());
+//     configs_table configs(get_self(), get_self().value);
+//     auto config = configs.get_or_default();
+//     if ( contract ) config.contract = *contract;
+//     if ( bytecode ) {
+//         config.bytecode = *bytecode;
+//         const auto hash = eosio::sha256( (const char*) &config.bytecode, sizeof( config.bytecode ));
+//         config.hash = hash;
+//     }
+//     check(config.contract.size() > 0, "contract name is empty");
+//     check(config.bytecode.size() > 0, "bytecode is empty");
+//     configs.set(config, get_self());
+// }
 
 [[eosio::action]]
 void bridge::onbridgemsg(const bridge_message_t message)

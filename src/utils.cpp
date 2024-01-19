@@ -40,7 +40,7 @@ namespace silkworm {
 //     return sha256( buf, read );
 // }
 
-// checksum256 bridge::make_key(const string str)
+// checksum256 make_key(const string str)
 // {
 //     // Check if the input string has the "0x" prefix
 //     size_t start_index = (str.substr(0, 2) == "0x") ? 2 : 0;
@@ -57,12 +57,12 @@ namespace silkworm {
 //     return make_key(bytes.data(), bytes.size());
 // }
 
-// checksum256 bridge::make_key(const bytes data)
+// checksum256 make_key(const bytes data)
 // {
 //     return make_key((const uint8_t *)data.data(), data.size());
 // }
 
-// checksum256 bridge::make_key(const uint8_t *ptr, const size_t len)
+// checksum256 make_key(const uint8_t *ptr, const size_t len)
 // {
 //     uint8_t buffer[32] = {};
 //     check(len <= sizeof(buffer), "len provided to make_key is too small");

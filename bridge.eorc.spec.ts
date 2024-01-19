@@ -13,7 +13,7 @@ const token_contract = "token.eorc"
 const tick = "eoss"
 const name = "EOSS eorc-20"
 const max = 210000000000
-const address = "59c2fffb3541a8d50ae75ae3c650f029509acdbe"
+const address = "0x59C2ffFB3541A8d50AE75AE3C650F029509aCDBE"
 blockchain.createAccount(token_contract);
 
 // one-time setup
@@ -32,16 +32,16 @@ function getToken(symcode: string) {
   return contracts.bridge.tables.tokens(scope).getTableRow(primary_key);
 }
 
-interface Configs {
-  contract: string;
-  hash: string;
-  bytecode: string;
-}
+// interface Configs {
+//   contract: string;
+//   hash: string;
+//   bytecode: string;
+// }
 
-function getConfigs() {
-  const scope = Name.from(bridge_contract).value.value;
-  return contracts.bridge.tables.configs(scope).getTableRows()[0] as Configs
-}
+// function getConfigs() {
+//   const scope = Name.from(bridge_contract).value.value;
+//   return contracts.bridge.tables.configs(scope).getTableRows()[0] as Configs
+// }
 
 describe(bridge_contract, () => {
   test('token::create', async () => {
@@ -49,13 +49,13 @@ describe(bridge_contract, () => {
     await contracts.token.actions.create([token_contract, supply]).send();
   });
 
-  test('setconfig', async () => {
-    const name = "BridgeEORC";
-    await contracts.bridge.actions.setconfig([name, bytecode.replace("0x", "")]).send();
-    const config = getConfigs();
-    expect(config.hash).toBe("24ffd55248685e1781db1cb9393a162b9bd1150981063cc2b946f0d159d130e1");
-    expect(config.contract).toBe(name);
-  });
+  // test('setconfig', async () => {
+  //   const name = "BridgeEORC";
+  //   await contracts.bridge.actions.setconfig([name, bytecode.replace("0x", "")]).send();
+  //   const config = getConfigs();
+  //   expect(config.hash).toBe("e70acf9fbc08b7d81f8fa169d9f43dc8a2698655e252fff7834f0080d3be6490");
+  //   expect(config.contract).toBe(name);
+  // });
 
   test('regtoken', async () => {
     await contracts.bridge.actions.regtoken([symcode, token_contract, tick, name, max, address]).send();
