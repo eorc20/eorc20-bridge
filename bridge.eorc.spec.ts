@@ -72,9 +72,8 @@ describe(bridge_contract, () => {
     await contracts.token.actions.create([token_contract, "1.0000 DELETE"]).send();
     await contracts.bridge.actions.regtoken(["DELETE", token_contract, "delete", name, max, address]).send();
     expect(getToken("DELETE")).toBeDefined();
-    await contracts.bridge.actions.deltoken([symcode]).send();
-    console.log(getToken("DELETE"));
-    // expect(getToken("DELETE")).toBeUndefined();
+    await contracts.bridge.actions.deltoken(["DELETE"]).send();
+    expect(getToken("DELETE")).toBeUndefined();
   });
 });
 
