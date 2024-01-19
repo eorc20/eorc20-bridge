@@ -50,7 +50,7 @@ bridge::inscription_data bridge::parse_inscription_data(const bytes data)
     const string p = j["p"];
     const string op = j["op"];
     const string tick = j["tick"];
-    const uint64_t amt = std::stoull(string{j["amt"]});
+    const uint64_t amt = std::stoul(string{j["amt"]});
 
     print(
         "\nfrom: ", bytesToHexString(from),
