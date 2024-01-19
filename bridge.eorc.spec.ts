@@ -6,24 +6,30 @@ import { bytecode } from "./scripts/bytecode.js";
 // Vert EOS VM
 const blockchain = new Blockchain()
 
-// contracts
-const contract = blockchain.createContract('bridge.eorc', 'bridge.eorc', true);
+const sym = "0,EOSS"
+const symcode = "EOSS"
+const bridge_contract = "bridge.eorc"
+const token_contract = "token.eorc"
+const tick = "eoss"
+const name = "EOSS eorc-20"
+const max = 210000000000
+const address = "59c2fffb3541a8d50ae75ae3c650f029509acdbe"
+blockchain.createAccount(token_contract);
 
 // one-time setup
 beforeEach(async () => {
   blockchain.setTime(TimePointSec.from("2024-01-17T00:00:00.000"));
 });
 
-function getToken(symcode: string) {
-  const scope = Name.from('bridge.eorc').value.value;
-  const primary_key = Asset.Symbol.from(symcode).value.value;
-  return contract.tables.tokens(scope).getTableRow(primary_key);
+const contracts = {
+  bridge: blockchain.createContract(bridge_contract, bridge_contract, true),
+  token: blockchain.createContract(token_contract, 'include/eosio.token/eosio.token', true),
 }
 
-function getTicker(tick: string) {
-  const scope = Name.from('bridge.eorc').value.value;
-  const primary_key = Name.from(tick).value.value;
-  return contract.tables.tokens(scope).getTableRow(primary_key);
+function getToken(symcode: string) {
+  const scope = Name.from(bridge_contract).value.value;
+  const primary_key = Asset.SymbolCode.from(symcode).value.value;
+  return contracts.bridge.tables.tokens(scope).getTableRow(primary_key);
 }
 
 interface Configs {
@@ -33,17 +39,42 @@ interface Configs {
 }
 
 function getConfigs() {
-  const scope = Name.from('bridge.eorc').value.value;
-  return contract.tables.configs(scope).getTableRows()[0] as Configs
+  const scope = Name.from(bridge_contract).value.value;
+  return contracts.bridge.tables.configs(scope).getTableRows()[0] as Configs
 }
 
-describe('bridge.eorc', () => {
+describe(bridge_contract, () => {
+  test('token::create', async () => {
+    const supply = `${max} ${symcode}`;
+    await contracts.token.actions.create([token_contract, supply]).send();
+  });
+
   test('setconfig', async () => {
     const name = "BridgeEORC";
-    await contract.actions.setconfig([name, bytecode.replace("0x", "")]).send();
+    await contracts.bridge.actions.setconfig([name, bytecode.replace("0x", "")]).send();
     const config = getConfigs();
-    expect(config.hash).toBe("825a207581dbdc4273697876ac567f0209248cd0d59f7e1630dd57ac7bbdd489");
+    expect(config.hash).toBe("24ffd55248685e1781db1cb9393a162b9bd1150981063cc2b946f0d159d130e1");
     expect(config.contract).toBe(name);
+  });
+
+  test('regtoken', async () => {
+    await contracts.bridge.actions.regtoken([symcode, token_contract, tick, name, max, address]).send();
+    const token = getToken(symcode);
+    expect(token.sym).toBe(sym);
+    expect(token.contract).toBe(token_contract);
+    expect(token.name).toBe(name);
+    expect(token.tick).toBe(tick);
+    expect(Number(token.max)).toBe(max);
+    expect(token.address).toBe(address);
+  });
+
+  test('deltoken', async () => {
+    await contracts.token.actions.create([token_contract, "1.0000 DELETE"]).send();
+    await contracts.bridge.actions.regtoken(["DELETE", token_contract, "delete", name, max, address]).send();
+    expect(getToken("DELETE")).toBeDefined();
+    await contracts.bridge.actions.deltoken([symcode]).send();
+    console.log(getToken("DELETE"));
+    // expect(getToken("DELETE")).toBeUndefined();
   });
 });
 

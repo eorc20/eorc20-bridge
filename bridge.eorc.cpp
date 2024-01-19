@@ -2,6 +2,47 @@
 #include "src/utils.cpp"
 
 [[eosio::action]]
+void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address )
+{
+    require_auth(get_self());
+
+    // input validation
+    check(is_account(contract), "contract account does not exist");
+    check(tick.size() > 0, "tick is empty");
+    check(name.size() > 0, "name is empty");
+    check(max > 0, "max must be greater than 0");
+    check(address.size() > 0, "address is empty");
+    check(address.size() == 20, "address must be 20 bytes");
+
+    // token validation
+    const asset supply = eosio::token::get_supply(contract, symcode);
+
+    // insert token to table
+    tokens_table tokens(get_self(), get_self().value);
+    auto token = tokens.find(symcode.raw());
+    check(token == tokens.end(), "token already exists");
+
+    tokens.emplace(get_self(), [&](auto& row) {
+        row.sym = supply.symbol;
+        row.contract = contract;
+        row.tick = tick;
+        row.name = name;
+        row.max = max;
+        row.address = address;
+    });
+}
+
+[[eosio::action]]
+void bridge::deltoken( const symbol_code symcode )
+{
+    require_auth(get_self());
+    tokens_table tokens(get_self(), get_self().value);
+    auto token = tokens.find(symcode.raw());
+    check(token != tokens.end(), "token does not exist");
+    tokens.erase(token);
+}
+
+[[eosio::action]]
 void bridge::setconfig( const optional<string> contract, const optional<bytes> bytecode )
 {
     require_auth(get_self());
@@ -23,15 +64,17 @@ void bridge::onbridgemsg(const bridge_message_t message)
 {
     const bridge_message_v0 &msg = std::get<bridge_message_v0>(message);
     check(msg.receiver == get_self(), "invalid message receiver");
-    parse_inscription_data(msg.data);
+    const bridge_message_data message_data = parse_bridge_message_data(msg.data);
+    const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 }
 
 [[eosio::action]]
 void bridge::test(bytes data) {
-    parse_inscription_data(data);
+    const bridge_message_data message_data = parse_bridge_message_data(data);
+    const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 }
 
-bridge::inscription_data bridge::parse_inscription_data(const bytes data)
+bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data )
 {
     // extract bridge message bytes data
     const bytes from = {data.begin(), data.begin() + 20};
@@ -42,6 +85,18 @@ bridge::inscription_data bridge::parse_inscription_data(const bytes data)
     const name from_account = name{*silkworm::extract_reserved_address(from)};
     const name to_account = name{*silkworm::extract_reserved_address(to)};
 
+    print(
+        "\nfrom: ", bytesToHexString(from),
+        "\nfrom_account: ", from_account,
+        "\nto: ", bytesToHexString(to),
+        "\nto_account: ", to_account,
+        "\ncalldata: ", calldata
+    );
+    return {from, from_account, to, to_account, calldata};
+}
+
+bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const string calldata)
+{
     // parse inscription
     const string inscription = utils::split( calldata, "data:," )[0];
     check(inscription.size() > 0, "inscription is empty");
@@ -53,10 +108,6 @@ bridge::inscription_data bridge::parse_inscription_data(const bytes data)
     const uint64_t amt = std::stoul(string{j["amt"]});
 
     print(
-        "\nfrom: ", bytesToHexString(from),
-        "\nfrom_account: ", from_account,
-        "\nto: ", bytesToHexString(to),
-        "\nto_account: ", to_account,
         "\ncalldata: ", calldata,
         "\ninscription: ", inscription,
         "\np: ", p,
@@ -64,5 +115,5 @@ bridge::inscription_data bridge::parse_inscription_data(const bytes data)
         "\ntick: ", tick,
         "\namt: ", amt
     );
-    return {from, from_account, to, to_account, p, op, tick, amt};
+    return {p, op, tick, amt};
 }
