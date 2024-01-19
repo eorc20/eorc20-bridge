@@ -2,7 +2,7 @@
 #include "src/utils.cpp"
 
 [[eosio::action]]
-void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const string address )
+void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address )
 {
     require_auth(get_self());
 
@@ -12,8 +12,7 @@ void bridge::regtoken( const symbol_code symcode, const name contract, const str
     check(name.size() > 0, "name is empty");
     check(max > 0, "max must be greater than 0");
     check(address.size() > 0, "address is empty");
-    check(address.substr(0, 2) == "0x", "address must start with 0x");
-    check(address.size() == 42, "address must be 42 characters long");
+    check(address.size() == 20, "address must be 20 bytes");
 
     // token validation
     const asset supply = eosio::token::get_supply(contract, symcode);
@@ -67,6 +66,9 @@ void bridge::onbridgemsg(const bridge_message_t message)
     check(msg.receiver == get_self(), "invalid message receiver");
     const bridge_message_data message_data = parse_bridge_message_data(msg.data);
     const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
+
+    check_tick(inscription_data.tick, msg.sender);
+    // validate inscription
 }
 
 [[eosio::action]]
@@ -108,6 +110,11 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     const string tick = j["tick"];
     const uint64_t amt = std::stoul(string{j["amt"]});
 
+    // validate inscription
+    check(p == "eorc20", "invalid inscription protocol");
+    check(op == "transfer", "only transfer operation is supported");
+    check(amt > 0, "inscription amount must be positive");
+
     print(
         "\ncalldata: ", calldata,
         "\ninscription: ", inscription,
@@ -117,4 +124,12 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
         "\namt: ", amt
     );
     return {p, op, tick, amt};
+}
+
+void bridge::check_tick(const string tick, const bytes sender )
+{
+    tokens_table tokens(get_self(), get_self().value);
+    auto index = tokens.get_index<"by.tick"_n>();
+    auto itr = index.find(to_checksum(tick));
+    check(itr != index.end() && itr->address == sender, "ERC-20 token not registerred");
 }

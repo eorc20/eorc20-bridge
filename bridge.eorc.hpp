@@ -25,40 +25,40 @@ public:
      *
      * - `{symbol} sym` - (primary key) token symbol
      * - `{name} contract` - token contract
-     * - `{name} tick` - (secondary key) token tick
      * - `{string} name` - token name
+     * - `{string} p` - inscription protocol
+     * - `{name} tick` - (secondary key) token tick
      * - `{uint64_t} max` - max amount
-     * - `{string} address` - token address
+     * - `{bytes} address` - token address
      *
      * ### example
      *
      * ```json
      * {
-     *     "symcode": "0,EOSS",
+     *     "sym": "0,EOSS",
      *     "contract": "token.eorc",
-     *     "tick": "eoss",
      *     "name": "EOSS eorc-20",
+     *     "p": "eorc20",
+     *     "tick": "eoss",
      *     "max": 210000000000,
-     *     "lim": 10000,
-     *     "address": "0x59C2ffFB3541A8d50AE75AE3C650F029509aCDBE"
+     *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe"
      * }
      * ```
      */
     struct [[eosio::table("tokens")]] tokens_row {
         symbol              sym;
         name                contract;
-        string              tick;
         string              name;
+        string              p;
+        string              tick;
         uint64_t            max;
-        string              address;
+        bytes               address;
 
         uint64_t primary_key() const { return sym.code().raw(); }
         checksum256 by_tick() const { return to_checksum(tick); }
-        checksum256 by_address() const { return to_checksum(address); }
     };
     typedef eosio::multi_index< "tokens"_n, tokens_row,
-        indexed_by<"by.tick"_n, const_mem_fun<tokens_row, checksum256, &tokens_row::by_tick>>,
-        indexed_by<"by.address"_n, const_mem_fun<tokens_row, checksum256, &tokens_row::by_address>>
+        indexed_by<"by.tick"_n, const_mem_fun<tokens_row, checksum256, &tokens_row::by_tick>>
     > tokens_table;
 
     static checksum256 to_checksum( string str )
@@ -125,16 +125,16 @@ public:
      * - `{string} tick` - token tick
      * - `{string} name` - token name
      * - `{uint64_t} max` - max amount
-     * - `{string} address` - token address
+     * - `{bytes} address` - token address
      *
      * ### example
      *
      * ```bash
-     * $ cleos push action bridge.eorc regtoken '["EOSS", "token.eorc, "eoss", "BridgeEORC", 210000000000, "0x59c2fffb3541a8d50ae75ae3c650f029509acdbe"]' -p bridge.eorc
+     * $ cleos push action bridge.eorc regtoken '["EOSS", "token.eorc, "eoss", "EOSS eorc-20", 210000000000, "59c2fffb3541a8d50ae75ae3c650f029509acdbe"]' -p bridge.eorc
      * ```
      */
     [[eosio::action]]
-    void regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const string address );
+    void regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address );
 
     [[eosio::action]]
     void deltoken( const symbol_code symcode );
@@ -170,11 +170,7 @@ public:
     void test(const bytes data);
 
 private:
-    // checksum256 make_key(const string str);
-    // checksum256 make_key(const bytes data);
-    // checksum256 make_key(const uint8_t *ptr, const size_t len);
-
-    // checksum256 get_trx_id();
     bridge_message_data parse_bridge_message_data( const bytes data );
     bridge_message_calldata parse_bridge_message_calldata(const string calldata);
+    void check_tick(const string tick, const bytes sender );
 };

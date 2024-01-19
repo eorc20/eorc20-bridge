@@ -12,8 +12,9 @@ const bridge_contract = "bridge.eorc"
 const token_contract = "token.eorc"
 const tick = "eoss"
 const name = "EOSS eorc-20"
+const p = "eorc20";
 const max = 210000000000
-const address = "0x59C2ffFB3541A8d50AE75AE3C650F029509aCDBE"
+const address = "59c2fffb3541a8d50ae75ae3c650f029509acdbe"
 blockchain.createAccount(token_contract);
 
 // one-time setup
