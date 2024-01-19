@@ -9,7 +9,7 @@ if ( !process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY is required");
 export const ACTOR = process.env.ACTOR
 export const PERMISSION = process.env.PERMISSION ?? "active";
 export const PRIVATE_KEY = process.env.PRIVATE_KEY;
-export const CONTRACT = "0x79493eec691d14b98a64C4Ab2171E3C5A8A29764";
+export const CONTRACT = "0x59C2ffFB3541A8d50AE75AE3C650F029509aCDBE";
 
 export const walletPlugin = new WalletPluginPrivateKey(process.env.PRIVATE_KEY);
 

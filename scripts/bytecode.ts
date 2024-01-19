@@ -1,5 +1,5 @@
-import path from "path";
 import { Hex } from "viem";
 
-export const filepath = path.join(import.meta.dir, "..", "bin", "BridgeEORC20.bin");
-export const bytecode: Hex = `0x${await Bun.file(filepath).text()}`
+import BridgeEORC20 from "../artifacts/contracts/BridgeEORC20.sol/BridgeEORC20.json";
+
+export const bytecode = BridgeEORC20.bytecode as Hex;

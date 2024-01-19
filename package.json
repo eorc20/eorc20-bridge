@@ -2,6 +2,8 @@
   "type": "module",
   "scripts": {
     "build": "cdt-cpp bridge.eorc.cpp -I include",
+    "compile": "hardhat compile",
+    "postcompile": "cat artifacts/build-info/*.json | jq .input > artifacts/standard-input.json",
     "test": "bun test"
   },
   "dependencies": {
@@ -11,8 +13,10 @@
     "viem": "latest"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "latest",
     "@proton/vert": "latest",
     "bun-types": "latest",
+    "hardhat": "latest",
     "typescript": "latest"
   }
 }

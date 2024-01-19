@@ -42,7 +42,7 @@ describe('bridge.eorc', () => {
     const name = "BridgeEORC";
     await contract.actions.setconfig([name, bytecode.replace("0x", "")]).send();
     const config = getConfigs();
-    expect(config.hash).toBe("f763cd2e485d4c79f4f4408c050e66475ae3637400c212a143ce5e6f1789696a");
+    expect(config.hash).toBe("825a207581dbdc4273697876ac567f0209248cd0d59f7e1630dd57ac7bbdd489");
     expect(config.contract).toBe(name);
   });
 });
