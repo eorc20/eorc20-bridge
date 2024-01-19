@@ -11,9 +11,7 @@ void bridge::on_transfer_token( const name from,
     if ( from == get_self() || to != get_self() || from == "eosio.ram"_n ) return;
 
     const tokens_row token = get_token(quantity.symbol.code(), get_first_receiver());
-
-    // EOS EVM call data to mint
-    // const bytes receiver = bytes{memo};
+    handle_erc20_transfer(token, quantity, memo);
 }
 
 [[eosio::action]]
@@ -158,4 +156,39 @@ bridge::tokens_row bridge::get_token( const symbol_code symcode, const name cont
     const auto token = tokens.get(symcode.raw(), "EORC-20 token not registerred");
     check(token.contract == contract, "invalid token contract");
     return token;
+}
+
+void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo )
+{
+    // const char method[4] = {'\xa9', '\x05', '\x9c', '\xbb'};  // sha3(transfer(address,uint256))[:4]
+    const char method[4] = {'\x40', '\xc1', '\x0f', '\x19'};  // sha3(mint(address,uint256))[:4]
+
+    intx::uint256 value((uint64_t)quantity.amount);
+
+    uint8_t value_buffer[32] = {};
+    intx::be::store(value_buffer, value);
+
+    const bytes address_bytes = parse_address( memo );
+    check( isRe )
+
+    bytes call_data;
+    call_data.reserve(4 + 64);
+    call_data.insert(call_data.end(), method, method + 4);
+    call_data.insert(call_data.end(), 32 - kAddressLength, 0);  // padding for address
+    call_data.insert(call_data.end(), address_bytes.begin(), address_bytes.end());
+    call_data.insert(call_data.end(), value_buffer, value_buffer + 32);
+
+    bytes value_zero; // value of EVM native token (aka EOS)
+    value_zero.resize(32, 0);
+
+    evm_runtime::call_action call_act("eosio.evm"_n, {{get_self(), "active"_n}});
+    call_act.send(get_self(), token.address, value_zero, call_data, evm_init_gaslimit);
+}
+
+bytes bridge::parse_address( const string memo )
+{
+    auto address_bytes = evmc::from_hex(memo);
+    eosio::check(!!address_bytes, "memo must be valid 0x EVM address");
+    eosio::check(address_bytes->size() == kAddressLength, "memo must be valid 0x EVM address");
+    return bytes{address_bytes->begin(), address_bytes->end()};
 }

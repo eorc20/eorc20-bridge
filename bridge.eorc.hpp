@@ -1,10 +1,18 @@
+// eosio
 #include <eosio/eosio.hpp>
 #include <eosio/system.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/singleton.hpp>
-#include <nlohmann/json.hpp>
-#include <utils/utils.hpp>
 #include <eosio.token/eosio.token.hpp>
+
+// evm
+#include <evm_runtime/evm_contract.hpp>
+#include <nlohmann/json.hpp>
+#include <intx/intx.hpp>
+#include <evmc/hex.hpp>
+
+// utils
+#include <utils/utils.hpp>
 
 using json = nlohmann::json;
 
@@ -12,6 +20,11 @@ using namespace eosio;
 using namespace std;
 
 typedef std::vector<uint8_t> bytes;
+
+constexpr size_t kAddressLength{20};
+constexpr size_t kHashLength{32};
+constexpr uint64_t evm_gaslimit = 500000;
+constexpr uint64_t evm_init_gaslimit = 10000000;
 
 class [[eosio::contract("bridge.eorc")]] bridge : public eosio::contract {
 
@@ -158,4 +171,6 @@ private:
     bridge_message_calldata parse_bridge_message_calldata(const string calldata);
     tokens_row get_tick( const string tick );
     tokens_row get_token( const symbol_code symcode, const name contract );
+    void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
+    bytes parse_address( const string memo );
 };
