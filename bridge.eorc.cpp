@@ -28,7 +28,21 @@ void bridge::regtoken( const symbol_code symcode, const name contract, const str
     check(address.size() == 20, "address must be 20 bytes");
 
     // token validation
-    const asset supply = eosio::token::get_supply(contract, symcode);
+    const asset maximum_supply = asset{int64_t(max), symbol{symcode, 0}};
+    const eosio::name issuer = get_self();
+
+    // check if max supply matches
+    if ( is_token_exists(contract, symcode) ) {
+        const asset supply = eosio::token::get_supply(contract, symcode);
+        check(supply.symbol == maximum_supply.symbol, "invalid token symbol");
+        check(supply.amount == maximum_supply.amount, "invalid token max supply");
+        check(get_token_issuer(contract, symcode) == issuer, "invalid token issuer");
+
+    // create new token
+    } else {
+        eosio::token::create_action create(contract, {contract, "active"_n});
+        create.send(issuer, maximum_supply);
+    }
 
     // insert token to table
     tokens_table tokens(get_self(), get_self().value);
@@ -36,13 +50,26 @@ void bridge::regtoken( const symbol_code symcode, const name contract, const str
     check(token == tokens.end(), "token already exists");
 
     tokens.emplace(get_self(), [&](auto& row) {
-        row.sym = supply.symbol;
+        row.sym = maximum_supply.symbol;
         row.contract = contract;
         row.tick = tick;
         row.name = name;
         row.max = max;
         row.address = address;
     });
+}
+
+bool bridge::is_token_exists( const name contract, const symbol_code symcode )
+{
+    eosio::token::stats stats(contract, symcode.raw());
+    auto itr = stats.find(symcode.raw());
+    return itr != stats.end();
+}
+
+name bridge::get_token_issuer( const name contract, const symbol_code symcode )
+{
+    eosio::token::stats stats(contract, symcode.raw());
+    return stats.get(symcode.raw(), "token does not exist").issuer;
 }
 
 [[eosio::action]]
@@ -169,7 +196,7 @@ void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity
     intx::be::store(value_buffer, value);
 
     const bytes address_bytes = parse_address( memo );
-    check( isRe )
+    // TO-DO check
 
     bytes call_data;
     call_data.reserve(4 + 64);

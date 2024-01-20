@@ -1,7 +1,7 @@
 import { parseAbi, encodeDeployData } from "viem";
 import { Address, Hex, encodeFunctionData, parseUnits } from "viem"
 import { CONTRACT, session } from "./config.js";
-import { AnyAction } from "@wharfkit/session";
+import { AnyAction, Asset, Bytes, Name, UInt64 } from "@wharfkit/session";
 import { call } from "./eos.evm.js";
 
 export const wagmiAbi = [
@@ -37,4 +37,20 @@ export function transfer(to: Address, value: bigint): AnyAction {
 export function deploy(name: string, tick: string, max: bigint, bytecode: Hex): AnyAction {
     const data = encodeDeployData({abi: wagmiAbi, args: [ name, tick, max ], bytecode});
     return call(session, null, parseUnits("0.0", 18), data)
+}
+
+export function regtoken(symcode: Asset.SymbolCode, contract: Name, tick: string, name: string, max: UInt64, address: Bytes): AnyAction {
+    return {
+        account: "bridge.eorc",
+        name: "regtoken",
+        authorization: [session.permissionLevel],
+        data: {
+            symcode,
+            contract,
+            tick,
+            name,
+            max,
+            address
+        },
+    }
 }

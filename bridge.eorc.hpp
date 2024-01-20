@@ -173,4 +173,6 @@ private:
     tokens_row get_token( const symbol_code symcode, const name contract );
     void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
     bytes parse_address( const string memo );
+    bool is_token_exists( const name contract, const symbol_code symcode );
+    name get_token_issuer( const name contract, const symbol_code symcode );
 };
