@@ -2,6 +2,8 @@
 
 > `EORC-20` to `ERC-20` Inscriptions [EOS EVM](https://eosnetwork.com/eos-evm/) Bridge.
 
+![image](https://github.com/eorc20/eorc20-bridge/assets/550895/fd1ebe51-3e61-4db6-9821-7cbeb4a3a36d)
+
 ## Token Contracts
 
 ### EOS EVM
