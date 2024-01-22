@@ -101,6 +101,13 @@ void bridge::onbridgemsg( const bridge_message_t message )
     const bridge_message_data message_data = parse_bridge_message_data(msg.data);
     const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 
+    print(
+        "\nonbridgemsg",
+        "\n-----------",
+        "\nmessage.sender:", bytesToHexString(msg.sender),
+        "\nmessage.receiver:", msg.receiver
+    );
+
     // validate inscription
     const tokens_row token = get_tick(inscription_data.tick);
     check(token.address == msg.sender, "invalid registered sender");
@@ -124,22 +131,27 @@ void bridge::test(bytes data) {
 bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data )
 {
     // extract bridge message bytes data
-    const bytes from = {data.begin(), data.begin() + 20};
-    const bytes to = {data.begin() + 20, data.begin() + 40};
-    const string calldata = {data.begin() + 40, data.end()};
+    const bytes sender = {data.begin(), data.begin() + 20};
+    const bytes from = {data.begin() + 20, data.begin() + 40};
+    const bytes to = {data.begin() + 40, data.begin() + 60};
+    const string calldata = {data.begin() + 60, data.end()};
 
     // parse reserved addresses
     const name from_account = name{*silkworm::extract_reserved_address(from)};
     const name to_account = name{*silkworm::extract_reserved_address(to)};
 
     print(
+        "\nparse_bridge_message_data",
+        "\n-------------------------",
+        "\ndata: ", bytesToHexString(data),
+        "\nsender: ", bytesToHexString(sender),
         "\nfrom: ", bytesToHexString(from),
         "\nfrom_account: ", from_account,
         "\nto: ", bytesToHexString(to),
         "\nto_account: ", to_account,
         "\ncalldata: ", calldata
     );
-    return {from, from_account, to, to_account, calldata};
+    return {sender, from, from_account, to, to_account, calldata};
 }
 
 bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const string calldata)
@@ -160,6 +172,8 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     check(amt > 0, "inscription amount must be positive");
 
     print(
+        "\nparse_bridge_message_calldata",
+        "\n------------------------------",
         "\ncalldata: ", calldata,
         "\ninscription: ", inscription,
         "\np: ", p,

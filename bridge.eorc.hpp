@@ -138,6 +138,7 @@ public:
     };
 
     struct bridge_message_data {
+        bytes       sender;
         bytes       from;
         name        from_account;
         bytes       to;
