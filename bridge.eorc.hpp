@@ -134,7 +134,9 @@ public:
         string      p;
         string      op;
         string      tick;
-        uint64_t    amt;
+        string      amt;
+        string      max;
+        string      lim;
     };
 
     struct bridge_message_data {

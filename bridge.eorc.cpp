@@ -109,6 +109,11 @@ void bridge::onbridgemsg( const bridge_message_t message )
     );
 
     // validate inscription
+    const string tick = inscription_data.tick;
+    const string op = inscription_data.op;
+    if ( op != "transfer") return; // skip non-transfer operations
+
+    const uint64_t amt = std::stoul(inscription_data.amt);
     const tokens_row token = get_tick(inscription_data.tick);
     check(token.address == msg.sender, "invalid registered sender");
 
@@ -116,8 +121,9 @@ void bridge::onbridgemsg( const bridge_message_t message )
     if ( message_data.to_account ) {
         print("\ntransfer to reserved address: ", message_data.to_account);
         eosio::token::transfer_action transfer(token.contract, {get_self(), "active"_n});
-        const int64_t amount = inscription_data.amt;
-        check(amount == inscription_data.amt, "amount overflow");
+        const int64_t amount = amt;
+        check(amount > 0, "amount must be greater than 0");
+        check(amount == amt, "amount overflow");
         transfer.send(get_self(), message_data.to_account, asset{amount, token.sym}, bytesToHexString(message_data.from));
     }
 }
@@ -164,12 +170,13 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     const string p = j["p"];
     const string op = j["op"];
     const string tick = j["tick"];
-    const uint64_t amt = std::stoul(string{j["amt"]});
+    const string amt = string{j["amt"]};
+    const string max = string{j["max"]};
+    const string lim = string{j["lim"]};
 
     // validate inscription
     check(p == "eorc20", "invalid inscription protocol");
-    check(op == "transfer", "only transfer operation is supported");
-    check(amt > 0, "inscription amount must be positive");
+    check(op == "mint" || op == "transfer" || op == "deploy", "invalid inscription operation");
 
     print(
         "\nparse_bridge_message_calldata",
@@ -179,9 +186,11 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
         "\np: ", p,
         "\nop: ", op,
         "\ntick: ", tick,
-        "\namt: ", amt
+        "\namt: ", amt,
+        "\nmax: ", max,
+        "\nlim: ", lim
     );
-    return {p, op, tick, amt};
+    return {p, op, tick, amt, max, lim};
 }
 
 bridge::tokens_row bridge::get_tick( const string tick )

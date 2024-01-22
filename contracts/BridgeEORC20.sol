@@ -23,28 +23,24 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
 
     constructor(
         string memory name_,
-        string memory symbol_
+        string memory symbol_,
+        uint64 max_,
+        uint64 lim_
     ) ERC20(name_, symbol_) Ownable(bridgeAddress) {
+        require(max_ > 0, "max supply must be greater than 0");
+        require(lim_ <= max_, "max mint per transaction must be less than max supply");
         tick = symbol_;
+        max = max_;
+        lim = lim_;
+        _inscribe(_msgSender(), address(0), deployOp());
     }
 
     function decimals() public view virtual override returns (uint8) {
         return 0;
     }
 
-    function deploy( uint64 max_, uint64 lim_ ) public onlyOwner returns (bool) {
-        require(max_ > 0, "max supply must be greater than 0");
-        require(lim_ <= max_, "max mint per transaction must be less than max supply");
-        require(max != 0, "already deployed");
-        max = max_;
-        lim = lim_;
-        _inscribe(_msgSender(), address(0), deployOp());
-        return true;
-    }
-
     // mint is used for snapshot distribution
     function mint(address to, uint256 value) public onlyOwner returns (bool) {
-        require(max != 0, "not deployed");
         if ( lim > 0 ) {
             require(value <= lim, "mint amount exceeds limit");
         }
