@@ -36,43 +36,80 @@ public:
      *
      * ### params
      *
-     * - `{symbol} sym` - (primary key) token symbol
-     * - `{name} contract` - token contract
-     * - `{string} name` - token name
-     * - `{string} p` - inscription protocol
-     * - `{name} tick` - (secondary key) token tick
-     * - `{uint64_t} max` - max amount
-     * - `{bytes} address` - token address
+     * - `{name} tick` - (primary key) inscription token ticker
+     * - `{bytes} address` - EVM token address
+     * - `{asset} maximum_supply` - (secondary key) EOS token maximum supply
+     * - `{name} contract` - EOS token contract
+     * - `{name} issuer` - EOS token issuer
      *
      * ### example
      *
      * ```json
      * {
-     *     "sym": "0,EOSS",
-     *     "contract": "token.eorc",
-     *     "name": "EOSS eorc-20",
-     *     "p": "eorc20",
      *     "tick": "eoss",
-     *     "max": 210000000000,
-     *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe"
+     *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe",
+     *     "maximum_supply": "210000000000 EOSS",
+     *     "contract": "token.eorc",
+     *     "issuer": "bridge.eorc"
      * }
      * ```
      */
     struct [[eosio::table("tokens")]] tokens_row {
-        symbol              sym;
-        name                contract;
-        string              name;
-        string              p;
-        string              tick;
-        uint64_t            max;
+        name                tick;
         bytes               address;
+        asset               maximum_supply;
+        name                contract;
+        name                issuer;
 
-        uint64_t primary_key() const { return sym.code().raw(); }
-        checksum256 by_tick() const { return to_checksum(tick); }
+        uint64_t primary_key() const { return tick.value; }
+        uint64_t by_supply() const { return maximum_supply.symbol.code().raw(); }
     };
     typedef eosio::multi_index< "tokens"_n, tokens_row,
-        indexed_by<"by.tick"_n, const_mem_fun<tokens_row, checksum256, &tokens_row::by_tick>>
+        indexed_by<"by.supply"_n, const_mem_fun<tokens_row, uint64_t, &tokens_row::by_supply>>
     > tokens_table;
+
+    /**
+     * ## TABLE `deploy`
+     *
+     * ### params
+     *
+     * - `{name} tick` - (primary key) inscription token ticker
+     * - `{string} p` - inscription protocol
+     * - `{int64_t} max` - max amount
+     * - `{int64_t} lim` - limit
+     * - `{bytes} address` - token address
+     * - `{checksum256} trx_id` - transaction id
+     * - `{uint32_t} block_num` - block number
+     * - `{time_point} timestamp` - timestamp
+     *
+     * ### example
+     *
+     * ```json
+     * {
+     *     "tick": "eoss",
+     *     "p": "eorc-20",
+     *     "max": 210000000000,
+     *     "lim": 10000,
+     *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe",
+     *     "trx_id": "84ebd4daf667feb3faf5abb2685c0543781d35848b98bbb3b05bbb8d9e875a69",
+     *     "block_num": 12345678,
+     *     "timestamp": "2024-01-22T00:00:00.000"
+     * }
+     * ```
+     */
+    struct [[eosio::table("deploy")]] deploy_row {
+        name                tick;
+        string              p;
+        int64_t             max;
+        int64_t             lim;
+        bytes               address;
+        checksum256         trx_id;
+        uint32_t            block_num;
+        time_point          timestamp;
+
+        uint64_t primary_key() const { return tick.value; }
+    };
+    typedef eosio::multi_index< "deploy"_n, deploy_row> deploy_table;
 
     static checksum256 to_checksum( string str )
     {
@@ -108,35 +145,32 @@ public:
      *
      * ### params
      *
+     * - `{name} tick` - token tick
      * - `{symbol_code} symcode` - token symbol code
      * - `{name} contract` - token contract
-     * - `{string} tick` - token tick
-     * - `{string} name` - token name
-     * - `{uint64_t} max` - max amount
-     * - `{bytes} address` - token address
      *
      * ### example
      *
      * ```bash
-     * $ cleos push action bridge.eorc regtoken '["EOSS", "token.eorc, "eoss", "EOSS eorc-20", 210000000000, "59c2fffb3541a8d50ae75ae3c650f029509acdbe"]' -p bridge.eorc
+     * $ cleos push action bridge.eorc regtoken '["eoss", "EOSS", "token.eorc"]' -p bridge.eorc
      * ```
      */
     [[eosio::action]]
-    void regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address );
+    void regtoken( const name tick, const symbol_code symcode, const name contract );
 
     [[eosio::action]]
-    void deltoken( const symbol_code symcode );
+    void deltoken( const name tick );
 
     [[eosio::action]]
     void pause( const bool paused );
 
     struct bridge_message_calldata {
         string      p;
-        string      op;
-        string      tick;
-        string      amt;
-        string      max;
-        string      lim;
+        name        op;
+        name        tick;
+        int64_t     amt;
+        int64_t     max;
+        int64_t     lim;
     };
 
     struct bridge_message_data {
@@ -172,9 +206,13 @@ public:
 private:
     bridge_message_data parse_bridge_message_data( const bytes data );
     bridge_message_calldata parse_bridge_message_calldata(const string calldata);
-    tokens_row get_tick( const string tick );
-    tokens_row get_token( const symbol_code symcode, const name contract );
+    deploy_row get_deploy( const string tick );
+    deploy_row get_deploy( const name tick );
+    tokens_row get_token_by_contract( const symbol_code symcode, const name contract );
+    tokens_row get_token( const name tick );
     void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
+    void handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data );
+
     bytes parse_address( const string memo );
     bool is_token_exists( const name contract, const symbol_code symcode );
     name get_token_issuer( const name contract, const symbol_code symcode );

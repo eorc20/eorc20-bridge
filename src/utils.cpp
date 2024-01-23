@@ -47,3 +47,21 @@ std::string bytesToHexString(const std::vector<uint8_t>& bytes) {
 string to_address(const bytes addr) {
     return bytesToHexString(addr);
 }
+
+checksum256 get_trx_id()
+{
+    size_t size = transaction_size();
+    char buf[size];
+    size_t read = read_transaction( buf, size );
+    check( size == read, "pomelo::get_trx_id: read_transaction failed");
+    return sha256( buf, read );
+}
+
+int64_t to_number( const string str )
+{
+    if ( str.empty() ) return 0;
+    const uint64_t num = std::stoul(str);
+    const int64_t number = num;
+    check(number == num, "number overflow");
+    return number;
+}

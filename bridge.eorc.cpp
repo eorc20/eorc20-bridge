@@ -10,25 +10,21 @@ void bridge::on_transfer_token( const name from,
     // ignore outgoing transfer from self
     if ( from == get_self() || to != get_self() || from == "eosio.ram"_n ) return;
 
-    const tokens_row token = get_token(quantity.symbol.code(), get_first_receiver());
+    const tokens_row token = get_token_by_contract(quantity.symbol.code(), get_first_receiver());
     handle_erc20_transfer(token, quantity, memo);
 }
 
 [[eosio::action]]
-void bridge::regtoken( const symbol_code symcode, const name contract, const string tick, const string name, const uint64_t max, const bytes address )
+void bridge::regtoken( const name tick, const symbol_code symcode, const name contract )
 {
     require_auth(get_self());
 
     // input validation
     check(is_account(contract), "contract account does not exist");
-    check(tick.size() > 0, "tick is empty");
-    check(name.size() > 0, "name is empty");
-    check(max > 0, "max must be greater than 0");
-    check(address.size() > 0, "address is empty");
-    check(address.size() == 20, "address must be 20 bytes");
 
     // token validation
-    const asset maximum_supply = asset{int64_t(max), symbol{symcode, 0}};
+    auto deploy = get_deploy(tick);
+    const asset maximum_supply = asset{deploy.max, symbol{symcode, 0}};
     const eosio::name issuer = get_self();
 
     // check if max supply matches
@@ -50,12 +46,11 @@ void bridge::regtoken( const symbol_code symcode, const name contract, const str
     check(token == tokens.end(), "token already exists");
 
     tokens.emplace(get_self(), [&](auto& row) {
-        row.sym = maximum_supply.symbol;
-        row.contract = contract;
         row.tick = tick;
-        row.name = name;
-        row.max = max;
-        row.address = address;
+        row.address = deploy.address;
+        row.maximum_supply = maximum_supply;
+        row.contract = contract;
+        row.issuer = issuer;
     });
 }
 
@@ -73,11 +68,11 @@ name bridge::get_token_issuer( const name contract, const symbol_code symcode )
 }
 
 [[eosio::action]]
-void bridge::deltoken( const symbol_code symcode )
+void bridge::deltoken( const name tick )
 {
     require_auth(get_self());
     tokens_table tokens(get_self(), get_self().value);
-    auto token = tokens.find(symcode.raw());
+    auto token = tokens.find(tick.value);
     check(token != tokens.end(), "token does not exist");
     tokens.erase(token);
 }
@@ -108,23 +103,29 @@ void bridge::onbridgemsg( const bridge_message_t message )
         "\nmessage.receiver:", msg.receiver
     );
 
-    // validate inscription
-    const string tick = inscription_data.tick;
-    const string op = inscription_data.op;
-    if ( op != "transfer") return; // skip non-transfer operations
+    // handle operations
+    const name op = inscription_data.op;
+    if ( op == "transfer"_n) handle_transfer_op(message_data, inscription_data);
+    // else if ( op == "mint") handle_mint_op(message_data, inscription_data);
+    // else if ( op == "deploy") handle_deploy_op(message_data, inscription_data);
+    else check(false, "invalid inscription operation");
+}
 
-    const uint64_t amt = std::stoul(inscription_data.amt);
-    const tokens_row token = get_tick(inscription_data.tick);
-    check(token.address == msg.sender, "invalid registered sender");
-
+void bridge::handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data )
+{
     // only handle EVM=>Native reserved address transfers
-    if ( message_data.to_account ) {
-        print("\ntransfer to reserved address: ", message_data.to_account);
-        eosio::token::transfer_action transfer(token.contract, {get_self(), "active"_n});
-        const int64_t amount = amt;
+    const name to = message_data.to_account;
+    if ( to ) {
+        print("\ntransfer to reserved address: ", to);
+
+        const int64_t amount = inscription_data.amt;
         check(amount > 0, "amount must be greater than 0");
-        check(amount == amt, "amount overflow");
-        transfer.send(get_self(), message_data.to_account, asset{amount, token.sym}, bytesToHexString(message_data.from));
+        const tokens_row token = get_token(inscription_data.tick);
+        const symbol sym = token.maximum_supply.symbol;
+        const string memo = bytesToHexString(message_data.from);
+
+        eosio::token::transfer_action transfer(token.contract, {get_self(), "active"_n});
+        transfer.send(get_self(), to, asset{amount, sym}, memo);
     }
 }
 
@@ -168,15 +169,16 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
 
     const json j = json::parse(inscription);
     const string p = j["p"];
-    const string op = j["op"];
-    const string tick = j["tick"];
-    const string amt = string{j["amt"]};
-    const string max = string{j["max"]};
-    const string lim = string{j["lim"]};
+    const name op = utils::parse_name(j["op"]);
+    const name tick = utils::parse_name(j["tick"]);
+    const int64_t amt = to_number(string{j["amt"]});
+    const int64_t max = to_number(string{j["max"]});
+    const int64_t lim = to_number(string{j["lim"]});
 
     // validate inscription
-    check(p == "eorc20", "invalid inscription protocol");
-    check(op == "mint" || op == "transfer" || op == "deploy", "invalid inscription operation");
+    check(tick.value, "invalid inscription tick");
+    check(p == "eorc-20", "invalid inscription protocol");
+    check(op == "mint"_n || op == "transfer"_n || op == "deploy"_n, "invalid inscription operation");
 
     print(
         "\nparse_bridge_message_calldata",
@@ -193,19 +195,30 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     return {p, op, tick, amt, max, lim};
 }
 
-bridge::tokens_row bridge::get_tick( const string tick )
+bridge::deploy_row bridge::get_deploy( const string tick )
 {
-    tokens_table tokens(get_self(), get_self().value);
-    auto index = tokens.get_index<"by.tick"_n>();
-    return index.get(to_checksum(tick), "EORC-20 token not registerred");
+    return get_deploy(utils::parse_name(tick));
 }
 
-bridge::tokens_row bridge::get_token( const symbol_code symcode, const name contract )
+bridge::deploy_row bridge::get_deploy( const name tick )
+{
+    deploy_table deploy(get_self(), get_self().value);
+    return deploy.get(tick.value, "EORC-20 is not deployed");
+}
+
+bridge::tokens_row bridge::get_token_by_contract( const symbol_code symcode, const name contract )
 {
     tokens_table tokens(get_self(), get_self().value);
-    const auto token = tokens.get(symcode.raw(), "EORC-20 token not registerred");
+    auto index = tokens.get_index<"by.supply"_n>();
+    const auto token = index.get(symcode.raw(), "EORC-20 token not registerred");
     check(token.contract == contract, "invalid token contract");
     return token;
+}
+
+bridge::tokens_row bridge::get_token( const name tick )
+{
+    tokens_table tokens(get_self(), get_self().value);
+    return tokens.get(tick.value, "EORC-20 token not registerred");
 }
 
 void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo )
@@ -220,6 +233,7 @@ void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity
 
     const bytes address_bytes = parse_address( memo );
     // TO-DO check
+    // Must be a valid EVM address
 
     bytes call_data;
     call_data.reserve(4 + 64);

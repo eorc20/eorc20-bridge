@@ -24,12 +24,13 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     constructor(
         string memory name_,
         string memory symbol_,
+        string memory tick_,
         uint64 max_,
         uint64 lim_
     ) ERC20(name_, symbol_) Ownable(bridgeAddress) {
         require(max_ > 0, "max supply must be greater than 0");
         require(lim_ <= max_, "max mint per transaction must be less than max supply");
-        tick = symbol_;
+        tick = tick_;
         max = max_;
         lim = lim_;
         _inscribe(_msgSender(), address(0), deployOp());
