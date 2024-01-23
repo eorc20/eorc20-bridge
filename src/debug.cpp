@@ -1,6 +1,7 @@
 [[eosio::action]]
 void bridge::test(string data) {
-    print(to_number(data));
+    // print(to_number(data));
+    // print(current_evm_block_number());
     // const bridge_message_data message_data = parse_bridge_message_data(data);
     // const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 }
@@ -24,12 +25,12 @@ void bridge::cleartable( const name table_name, const optional<name> scope, cons
     const uint64_t value = scope ? scope->value : get_self().value;
 
     // tables
-    bridge::configs_table _configs( get_self(), value );
+    bridge::config_table _config( get_self(), value );
     bridge::tokens_table _tokens( get_self(), value );
     bridge::deploy_table _deploy( get_self(), value );
 
     if (table_name == "tokens"_n) clear_table( _tokens, rows_to_clear );
     else if (table_name == "deploy"_n) clear_table( _deploy, rows_to_clear );
-    else if (table_name == "configs"_n) _configs.remove();
+    else if (table_name == "config"_n) _config.remove();
     else check(false, "cleartable: [table_name] unknown table to clear" );
 }

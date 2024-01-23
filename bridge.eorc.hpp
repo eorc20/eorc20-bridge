@@ -26,7 +26,7 @@ constexpr size_t kAddressLength{20};
 constexpr size_t kHashLength{32};
 constexpr uint64_t EVM_GASLIMIT = 500000;
 constexpr uint64_t EVM_INIT_GAS_LIMIT = 10000000;
-constexpr uint32_t EVM_LOCK_GENESIS_TIME = 1680661089; // "2023-04-05T02:18:09Z"
+// constexpr uint32_t EVM_LOCK_GENESIS_TIME = 1680661089; // "2023-04-05T02:18:09Z"
 
 class [[eosio::contract("bridge.eorc")]] bridge : public eosio::contract {
 
@@ -94,7 +94,6 @@ public:
      *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe",
      *     "trx_id": "84ebd4daf667feb3faf5abb2685c0543781d35848b98bbb3b05bbb8d9e875a69",
      *     "block_num": 12345678,
-     *     "evm_block_num": 12345678,
      *     "timestamp": "2024-01-22T00:00:00"
      * }
      * ```
@@ -107,7 +106,6 @@ public:
         bytes               address;
         checksum256         trx_id;
         uint32_t            block_num;
-        uint32_t            evm_block_num;
         time_point_sec      timestamp;
 
         uint64_t primary_key() const { return tick.value; }
@@ -119,6 +117,8 @@ public:
 
     /**
      * ## TABLE `mints`
+     *
+     * > Record the minting of EVM tokens.
      *
      * - scope: `{name} tick`
      *
@@ -165,10 +165,10 @@ public:
      * }
      * ```
      */
-    struct [[eosio::table("configs")]] configs_row {
+    struct [[eosio::table("config")]] config_row {
         bool            paused = false;
     };
-    typedef eosio::singleton< "configs"_n, configs_row > configs_table;
+    typedef eosio::singleton< "config"_n, config_row > config_table;
 
     /**
      * ## ACTION `regtoken`

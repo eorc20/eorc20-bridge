@@ -1,5 +1,8 @@
 #include <eosio/transaction.hpp>
 #include <eosio/crypto.hpp>
+#include <vector>
+#include <cstddef> // for size_t
+
 
 using bytes_view = std::basic_string_view<uint8_t>;
 
@@ -48,15 +51,6 @@ string to_address(const bytes addr) {
     return bytesToHexString(addr);
 }
 
-checksum256 get_trx_id()
-{
-    size_t size = transaction_size();
-    char buf[size];
-    size_t read = read_transaction( buf, size );
-    check( size == read, "get_trx_id: read_transaction failed");
-    return sha256( buf, read );
-}
-
 int64_t to_number(const std::string& str) {
     if (str.empty()) return 0;
 
@@ -83,7 +77,23 @@ uint64_t bytesToUint64(const bytes& b) {
     return result;
 }
 
-uint32_t current_evm_block_number() {
-    const uint32_t current = current_time_point().sec_since_epoch();
-    return current - EVM_LOCK_GENESIS_TIME + 1;
+// uint32_t get_evm_genesis_time() {
+//     evm_runtime::config_table _config("eosio.evm"_n, "eosio.evm"_n.value);
+//     auto config = _config.get();
+//     print("\ngenesis_time", config.genesis_time.sec_since_epoch());
+//     return config.genesis_time.sec_since_epoch();
+// }
+
+// uint32_t current_evm_block_number() {
+//     const uint32_t current = current_time_point().sec_since_epoch();
+//     return current - get_evm_genesis_time() + 1;
+// }
+
+checksum256 get_trx_id()
+{
+    size_t size = transaction_size();
+    std::vector<char> buf(size);
+    size_t read = read_transaction(buf.data(), size);
+    check(size == read, "get_trx_id: read_transaction failed");
+    return sha256(buf.data(), read);
 }

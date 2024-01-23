@@ -2,14 +2,28 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
+#include <eosio/singleton.hpp>
 
 #include <string>
+using namespace eosio;
 
 typedef std::vector<uint8_t> bytes;
 
 class [[eosio::contract("eosio.evm")]] evm_runtime : public eosio::contract {
     public:
     using contract::contract;
+
+    // TO-DO: fix this, can't query config
+    struct [[eosio::table("config")]] config_row {
+        uint32_t            version; // placeholder for future variant index
+        uint64_t            chainid = 0;
+        time_point_sec      genesis_time;
+        asset               ingress_bridge_fee;
+        uint64_t            gas_price = 0;
+        uint32_t            miner_cut = 0;
+        uint32_t            status = 0; // <- bit mask values from status_flags
+    };
+    typedef eosio::singleton< "config"_n, config_row > config_table;
 
     [[eosio::action]]
     void call(eosio::name from, const bytes& to, const bytes& value, const bytes& data, uint64_t gas_limit);

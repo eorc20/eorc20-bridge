@@ -127,11 +127,11 @@ void bridge::deldeploy( const name tick )
 void bridge::pause( const bool paused )
 {
     require_auth(get_self());
-    configs_table configs(get_self(), get_self().value);
-    auto config = configs.get_or_default();
+    config_table _config(get_self(), get_self().value);
+    auto config = _config.get_or_default();
     check(config.paused != paused, "paused is unchanged");
     config.paused = paused;
-    configs.set(config, get_self());
+    _config.set(config, get_self());
 }
 
 void bridge::check_deploy_inscription( const bytes address, const bridge_message_calldata inscription_data )
@@ -213,15 +213,15 @@ void bridge::handle_deploy_op( const bytes address, const bridge_message_data me
     auto _deploy = deploy.find(tick.value);
     check(_deploy == deploy.end(), "deploy already exists");
 
+    const checksum256 trx_id = get_trx_id();
     deploy.emplace(get_self(), [&](auto& row) {
         row.tick = tick;
         row.p = p;
         row.max = max;
         row.lim = lim;
         row.address = address;
-        row.trx_id = get_trx_id();
+        row.trx_id = trx_id;
         row.block_num = current_block_number();
-        row.evm_block_num = current_evm_block_number();
         row.timestamp = current_time_point();
     });
 }
