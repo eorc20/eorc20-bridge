@@ -41,7 +41,7 @@ void bridge::onbridgemsg( const bridge_message_t message )
     const name op = inscription_data.op;
     if ( op == "transfer"_n) handle_transfer_op(msg.sender, message_data, inscription_data);
     else if ( op == "deploy"_n) handle_deploy_op(msg.sender, message_data, inscription_data);
-    else if ( op == "mint"_n) {}
+    else if ( op == "mint"_n) handle_mint_op(msg.sender, message_data, inscription_data);
     else check(false, "invalid inscription operation");
 
     // log inscription
