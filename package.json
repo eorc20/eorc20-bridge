@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "build": "cdt-cpp bridge.eorc.cpp -I include",
+    "build": "cdt-cpp bridge.eorc.cpp -I include -D DEBUG",
     "compile": "hardhat compile",
     "postcompile": "cat artifacts/build-info/*.json | jq .input > artifacts/standard-input.json",
     "test": "bun test"

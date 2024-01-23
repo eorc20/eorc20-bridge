@@ -1,6 +1,14 @@
 #include "bridge.eorc.hpp"
 #include "src/utils.cpp"
 
+// logging (used for backend syncing)
+#include "src/logs.cpp"
+
+// DEBUG (used to help testing)
+#ifdef DEBUG
+#include "src/debug.cpp"
+#endif
+
 [[eosio::on_notify("*::transfer")]]
 void bridge::on_transfer_token( const name from,
                               const name to,
@@ -78,6 +86,16 @@ void bridge::deltoken( const name tick )
 }
 
 [[eosio::action]]
+void bridge::deldeploy( const name tick )
+{
+    require_auth(get_self());
+    deploy_table _deploy(get_self(), get_self().value);
+    auto deploy = _deploy.find(tick.value);
+    check(deploy != _deploy.end(), "deploy does not exist");
+    _deploy.erase(deploy);
+}
+
+[[eosio::action]]
 void bridge::pause( const bool paused )
 {
     require_auth(get_self());
@@ -117,18 +135,6 @@ void bridge::onbridgemsg( const bridge_message_t message )
     transferins.send(message_data.from, message_data.to, message_data.id);
 }
 
-[[eosio::action]]
-void bridge::inscribe( const uint64_t id, const string data )
-{
-    require_auth(get_self());
-}
-
-[[eosio::action]]
-void bridge::transferins( const address from, const address to, const uint64_t id )
-{
-    require_auth(get_self());
-}
-
 void bridge::handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data )
 {
     // only handle EVM=>Native reserved address transfers
@@ -145,13 +151,6 @@ void bridge::handle_transfer_op( const bridge_message_data message_data, const b
         eosio::token::transfer_action transfer(token.contract, {get_self(), "active"_n});
         transfer.send(get_self(), to, asset{amount, sym}, memo);
     }
-}
-
-[[eosio::action]]
-void bridge::test(string data) {
-    print(to_number(data));
-    // const bridge_message_data message_data = parse_bridge_message_data(data);
-    // const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 }
 
 bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data )

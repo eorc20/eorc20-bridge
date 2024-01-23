@@ -81,7 +81,7 @@ public:
      * - `{bytes} address` - token address
      * - `{checksum256} trx_id` - transaction id
      * - `{uint32_t} block_num` - block number
-     * - `{time_point} timestamp` - timestamp
+     * - `{time_point_sec} timestamp` - timestamp
      *
      * ### example
      *
@@ -94,7 +94,7 @@ public:
      *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe",
      *     "trx_id": "84ebd4daf667feb3faf5abb2685c0543781d35848b98bbb3b05bbb8d9e875a69",
      *     "block_num": 12345678,
-     *     "timestamp": "2024-01-22T00:00:00.000"
+     *     "timestamp": "2024-01-22T00:00:00"
      * }
      * ```
      */
@@ -106,7 +106,7 @@ public:
         bytes               address;
         checksum256         trx_id;
         uint32_t            block_num;
-        time_point          timestamp;
+        time_point_sec      timestamp;
 
         uint64_t primary_key() const { return tick.value; }
     };
@@ -163,6 +163,9 @@ public:
     void deltoken( const name tick );
 
     [[eosio::action]]
+    void deldeploy( const name tick );
+
+    [[eosio::action]]
     void pause( const bool paused );
 
     struct bridge_message_calldata {
@@ -197,9 +200,6 @@ public:
     void onbridgemsg(const bridge_message_t message);
 
     [[eosio::action]]
-    void test(const string data);
-
-    [[eosio::action]]
     void inscribe( const uint64_t id, const string data );
     using inscribe_action = eosio::action_wrapper<"inscribe"_n, &bridge::inscribe>;
 
@@ -211,6 +211,16 @@ public:
                             const name to,
                             const asset quantity,
                             const string memo );
+
+    // DEBUG (used to help testing)
+    #ifdef DEBUG
+    [[eosio::action]]
+    void test(const string data);
+
+    // @debug
+    [[eosio::action]]
+    void cleartable( const name table_name, const optional<name> scope, const optional<uint64_t> max_rows );
+    #endif
 
 private:
     bridge_message_data parse_bridge_message_data( const bytes data );
@@ -225,4 +235,10 @@ private:
     bytes parse_address( const string memo );
     bool is_token_exists( const name contract, const symbol_code symcode );
     name get_token_issuer( const name contract, const symbol_code symcode );
+
+    // DEBUG (used to help testing)
+    #ifdef DEBUG
+    template <typename T>
+    void clear_table( T& table, uint64_t rows_to_clear );
+    #endif
 };
