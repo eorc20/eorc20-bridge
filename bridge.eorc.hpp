@@ -197,6 +197,10 @@ public:
     [[eosio::action]]
     void test(const bytes data);
 
+    [[eosio::action]]
+    void inscribe( const string from, const string to, const string data );
+    using inscribe_action = eosio::action_wrapper<"inscribe"_n, &bridge::inscribe>;
+
     [[eosio::on_notify("*::transfer")]]
     void on_transfer_token( const name from,
                             const name to,

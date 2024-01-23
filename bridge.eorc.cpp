@@ -109,6 +109,16 @@ void bridge::onbridgemsg( const bridge_message_t message )
     // else if ( op == "mint") handle_mint_op(message_data, inscription_data);
     // else if ( op == "deploy") handle_deploy_op(message_data, inscription_data);
     else check(false, "invalid inscription operation");
+
+    // log inscription
+    bridge::inscribe_action inscribe(get_self(), {get_self(), "active"_n});
+    inscribe.send(bytesToHexString(message_data.from), bytesToHexString(message_data.to), message_data.calldata);
+}
+
+[[eosio::action]]
+void bridge::inscribe( const string from, const string to, const string data )
+{
+    require_auth(get_self());
 }
 
 void bridge::handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data )
@@ -223,8 +233,8 @@ bridge::tokens_row bridge::get_token( const name tick )
 
 void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo )
 {
-    // const char method[4] = {'\xa9', '\x05', '\x9c', '\xbb'};  // sha3(transfer(address,uint256))[:4]
-    const char method[4] = {'\x40', '\xc1', '\x0f', '\x19'};  // sha3(mint(address,uint256))[:4]
+    const char method[4] = {'\xa9', '\x05', '\x9c', '\xbb'};  // sha3(transfer(address,uint256))[:4]
+    // const char method[4] = {'\x40', '\xc1', '\x0f', '\x19'};  // sha3(mint(address,uint256))[:4]
 
     intx::uint256 value((uint64_t)quantity.amount);
 
