@@ -134,14 +134,23 @@ void bridge::pause( const bool paused )
     configs.set(config, get_self());
 }
 
+void bridge::check_deploy_inscription( const bytes address, const bridge_message_calldata inscription_data )
+{
+    // validate transfer
+    const name tick = inscription_data.tick;
+    const int64_t amount = inscription_data.amt;
+    check(amount > 0, "inscription amount must be greater than 0");
+    const deploy_row deploy = get_deploy(tick);
+    check(deploy.address == address, "invalid deploy address");
+}
+
 void bridge::handle_transfer_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data )
 {
     // validate transfer
     const name tick = inscription_data.tick;
     const int64_t amount = inscription_data.amt;
-    check(amount > 0, "amount must be greater than 0");
-    const deploy_row deploy = get_deploy(tick);
-    check(deploy.address == address, "invalid deploy address");
+    check(amount > 0, "inscription amount must be greater than 0");
+    check_deploy_inscription(address, inscription_data);
 
     // only handle EVM=>Native reserved address transfers
     const name to = message_data.to_account;
@@ -156,12 +165,48 @@ void bridge::handle_transfer_op( const bytes address, const bridge_message_data 
     }
 }
 
+void bridge::handle_mint_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data )
+{
+    // validate transfer
+    const name tick = inscription_data.tick;
+    const int64_t amount = inscription_data.amt;
+    check(amount > 0, "inscription amount must be greater than 0");
+    check_deploy_inscription(address, inscription_data);
+
+    // mint tokens on Native to bridge
+    const tokens_row token = get_token(tick);
+    const symbol sym = token.maximum_supply.symbol;
+    const bytes from = message_data.from;
+    const string memo = bytesToHexString(from); // use from address as memo
+    eosio::token::issue_action issue(token.contract, {get_self(), "active"_n});
+    issue.send(get_self(), asset{amount, sym}, memo);
+
+    // add minted newly tokens to address
+    mints_table mints(get_self(), tick.value);
+    auto index = mints.get_index<"by.address"_n>();
+    auto itr = index.find(evm_runtime::make_key(from));
+    if ( itr == index.end() ) {
+        mints.emplace(get_self(), [&](auto& row) {
+            row.id = mints.available_primary_key();
+            row.address = from;
+            row.balance = amount;
+        });
+    } else {
+        index.modify(itr, get_self(), [&](auto& row) {
+            row.balance += amount;
+        });
+    }
+}
+
 void bridge::handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data )
 {
     const name tick = inscription_data.tick;
     const string p = inscription_data.p;
     const int64_t max = inscription_data.max;
     const int64_t lim = inscription_data.lim;
+
+    // validate deploy
+    check(max > 0, "inscription max must be greater than 0");
 
     // insert deploy to table
     deploy_table deploy(get_self(), get_self().value);
@@ -232,14 +277,12 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     if ( op == "mint"_n || op == "transfer"_n ) {
         check(j.contains("amt"), "invalid inscription amount");
         amt = to_number(string{j["amt"]});
-        check(amt > 0, "inscription amount must be greater than 0");
     }
     if ( op == "deploy"_n ) {
         check(j.contains("max"), "invalid inscription max");
         check(j.contains("lim"), "invalid inscription lim");
         max = to_number(string{j["max"]});
         lim = to_number(string{j["lim"]});
-        check(max > 0, "inscription max must be greater than 0");
     }
 
     print(

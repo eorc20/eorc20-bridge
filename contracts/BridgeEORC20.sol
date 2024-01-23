@@ -40,11 +40,8 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
         return 0;
     }
 
-    // mint is used for snapshot distribution
+    // mint is used for snapshot distribution or bulk minting
     function mint(address to, uint256 value) public onlyOwner returns (bool) {
-        if ( lim > 0 ) {
-            require(value <= lim, "mint amount exceeds limit");
-        }
         _mint(to, value);
         require(totalSupply() <= max, "max supply reached");
         return true;

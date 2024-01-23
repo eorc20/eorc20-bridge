@@ -263,6 +263,9 @@ private:
     void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
     void handle_transfer_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
     void handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
+    void handle_mint_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
+
+    void check_deploy_inscription( const bytes address, const bridge_message_calldata inscription_data );
 
     bytes parse_address( const string memo );
     bool is_token_exists( const name contract, const symbol_code symcode );
