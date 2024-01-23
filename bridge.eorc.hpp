@@ -24,8 +24,9 @@ typedef bytes address;
 
 constexpr size_t kAddressLength{20};
 constexpr size_t kHashLength{32};
-constexpr uint64_t evm_gaslimit = 500000;
-constexpr uint64_t evm_init_gaslimit = 10000000;
+constexpr uint64_t EVM_GASLIMIT = 500000;
+constexpr uint64_t EVM_INIT_GAS_LIMIT = 10000000;
+constexpr uint32_t EVM_LOCK_GENESIS_TIME = 1680661089; // "2023-04-05T02:18:09Z"
 
 class [[eosio::contract("bridge.eorc")]] bridge : public eosio::contract {
 
@@ -81,6 +82,7 @@ public:
      * - `{bytes} address` - token address
      * - `{checksum256} trx_id` - transaction id
      * - `{uint32_t} block_num` - block number
+     * - `{uint32_t} evm_block_num` - evm block number
      * - `{time_point_sec} timestamp` - timestamp
      *
      * ### example
@@ -94,6 +96,7 @@ public:
      *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe",
      *     "trx_id": "84ebd4daf667feb3faf5abb2685c0543781d35848b98bbb3b05bbb8d9e875a69",
      *     "block_num": 12345678,
+     *     "evm_block_num": 12345678,
      *     "timestamp": "2024-01-22T00:00:00"
      * }
      * ```
@@ -106,6 +109,7 @@ public:
         bytes               address;
         checksum256         trx_id;
         uint32_t            block_num;
+        uint32_t            evm_block_num;
         time_point_sec      timestamp;
 
         uint64_t primary_key() const { return tick.value; }
@@ -178,7 +182,7 @@ public:
     };
 
     struct bridge_message_data {
-        bytes       sender;
+        bytes       msg_sender;
         bytes       from;
         name        from_account;
         bytes       to;
@@ -231,6 +235,7 @@ private:
     tokens_row get_token( const name tick );
     void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
     void handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data );
+    void handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
 
     bytes parse_address( const string memo );
     bool is_token_exists( const name contract, const symbol_code symcode );

@@ -23,6 +23,35 @@ void bridge::on_transfer_token( const name from,
 }
 
 [[eosio::action]]
+void bridge::onbridgemsg( const bridge_message_t message )
+{
+    const bridge_message_v0 &msg = std::get<bridge_message_v0>(message);
+    check(msg.receiver == get_self(), "invalid message receiver");
+    const bridge_message_data message_data = parse_bridge_message_data(msg.data);
+    const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
+
+    print(
+        "\nonbridgemsg",
+        "\n-----------",
+        "\nmessage.sender:", bytesToHexString(msg.sender),
+        "\nmessage.receiver:", msg.receiver
+    );
+
+    // handle operations
+    const name op = inscription_data.op;
+    if ( op == "transfer"_n) handle_transfer_op(message_data, inscription_data);
+    else if ( op == "deploy"_n) handle_deploy_op(msg.sender, message_data, inscription_data);
+    else if ( op == "mint"_n) {}
+    else check(false, "invalid inscription operation");
+
+    // log inscription
+    bridge::inscribe_action inscribe(get_self(), {get_self(), "active"_n});
+    bridge::transferins_action transferins(get_self(), {get_self(), "active"_n});
+    inscribe.send(message_data.id, message_data.calldata);
+    transferins.send(message_data.from, message_data.to, message_data.id);
+}
+
+[[eosio::action]]
 void bridge::regtoken( const name tick, const symbol_code symcode, const name contract )
 {
     require_auth(get_self());
@@ -61,6 +90,7 @@ void bridge::regtoken( const name tick, const symbol_code symcode, const name co
         row.issuer = issuer;
     });
 }
+
 
 bool bridge::is_token_exists( const name contract, const symbol_code symcode )
 {
@@ -106,35 +136,6 @@ void bridge::pause( const bool paused )
     configs.set(config, get_self());
 }
 
-[[eosio::action]]
-void bridge::onbridgemsg( const bridge_message_t message )
-{
-    const bridge_message_v0 &msg = std::get<bridge_message_v0>(message);
-    check(msg.receiver == get_self(), "invalid message receiver");
-    const bridge_message_data message_data = parse_bridge_message_data(msg.data);
-    const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
-
-    print(
-        "\nonbridgemsg",
-        "\n-----------",
-        "\nmessage.sender:", bytesToHexString(msg.sender),
-        "\nmessage.receiver:", msg.receiver
-    );
-
-    // handle operations
-    const name op = inscription_data.op;
-    if ( op == "transfer"_n) handle_transfer_op(message_data, inscription_data);
-    else if ( op == "mint"_n) {}
-    else if ( op == "deploy"_n) {}
-    else check(false, "invalid inscription operation");
-
-    // log inscription
-    bridge::inscribe_action inscribe(get_self(), {get_self(), "active"_n});
-    bridge::transferins_action transferins(get_self(), {get_self(), "active"_n});
-    inscribe.send(message_data.id, message_data.calldata);
-    transferins.send(message_data.from, message_data.to, message_data.id);
-}
-
 void bridge::handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data )
 {
     // only handle EVM=>Native reserved address transfers
@@ -153,10 +154,35 @@ void bridge::handle_transfer_op( const bridge_message_data message_data, const b
     }
 }
 
+void bridge::handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data )
+{
+    const name tick = inscription_data.tick;
+    const string p = inscription_data.p;
+    const int64_t max = inscription_data.max;
+    const int64_t lim = inscription_data.lim;
+
+    // insert deploy to table
+    deploy_table deploy(get_self(), get_self().value);
+    auto _deploy = deploy.find(tick.value);
+    check(_deploy == deploy.end(), "deploy already exists");
+
+    deploy.emplace(get_self(), [&](auto& row) {
+        row.tick = tick;
+        row.p = p;
+        row.max = max;
+        row.lim = lim;
+        row.address = address;
+        row.trx_id = get_trx_id();
+        row.block_num = current_block_number();
+        row.evm_block_num = current_evm_block_number();
+        row.timestamp = current_time_point();
+    });
+}
+
 bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data )
 {
     // extract bridge message bytes data
-    const bytes sender = {data.begin(), data.begin() + 20};
+    const bytes msg_sender = {data.begin(), data.begin() + 20};
     const bytes from = {data.begin() + 20, data.begin() + 40};
     const bytes to = {data.begin() + 40, data.begin() + 60};
     const uint64_t id = bytesToUint64({data.begin() + 60, data.begin() + 68});
@@ -170,7 +196,7 @@ bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data 
         "\nparse_bridge_message_data",
         "\n-------------------------",
         "\ndata: ", bytesToHexString(data),
-        "\nsender: ", bytesToHexString(sender),
+        "\nmsg_sender: ", bytesToHexString(msg_sender),
         "\nfrom: ", bytesToHexString(from),
         "\nfrom_account: ", from_account,
         "\nto: ", bytesToHexString(to),
@@ -178,7 +204,7 @@ bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data 
         "\nid: ", id,
         "\ncalldata: ", calldata
     );
-    return {sender, from, from_account, to, to_account, id, calldata};
+    return {msg_sender, from, from_account, to, to_account, id, calldata};
 }
 
 bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const string calldata)
@@ -204,12 +230,14 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     if ( op == "mint"_n || op == "transfer"_n ) {
         check(j.contains("amt"), "invalid inscription amount");
         amt = to_number(string{j["amt"]});
+        check(amt > 0, "inscription amount must be greater than 0");
     }
     if ( op == "deploy"_n ) {
         check(j.contains("max"), "invalid inscription max");
         check(j.contains("lim"), "invalid inscription lim");
         max = to_number(string{j["max"]});
         lim = to_number(string{j["lim"]});
+        check(max > 0, "inscription max must be greater than 0");
     }
 
     print(
@@ -278,7 +306,7 @@ void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity
     value_zero.resize(32, 0);
 
     evm_runtime::call_action call_act("eosio.evm"_n, {{get_self(), "active"_n}});
-    call_act.send(get_self(), token.address, value_zero, call_data, evm_init_gaslimit);
+    call_act.send(get_self(), token.address, value_zero, call_data, EVM_INIT_GAS_LIMIT);
 }
 
 bytes bridge::parse_address( const string memo )

@@ -53,7 +53,7 @@ checksum256 get_trx_id()
     size_t size = transaction_size();
     char buf[size];
     size_t read = read_transaction( buf, size );
-    check( size == read, "pomelo::get_trx_id: read_transaction failed");
+    check( size == read, "get_trx_id: read_transaction failed");
     return sha256( buf, read );
 }
 
@@ -81,4 +81,9 @@ uint64_t bytesToUint64(const bytes& b) {
         result = (result << 8) | b[i];
     }
     return result;
+}
+
+uint32_t current_evm_block_number() {
+    const uint32_t current = current_time_point().sec_since_epoch();
+    return current - EVM_LOCK_GENESIS_TIME + 1;
 }
