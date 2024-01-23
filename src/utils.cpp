@@ -57,11 +57,28 @@ checksum256 get_trx_id()
     return sha256( buf, read );
 }
 
-int64_t to_number( const string str )
-{
-    if ( str.empty() ) return 0;
-    const uint64_t num = std::stoul(str);
-    const int64_t number = num;
-    check(number == num, "number overflow");
-    return number;
+int64_t to_number(const std::string& str) {
+    if (str.empty()) return 0;
+
+    char* end;
+    errno = 0; // Reset errno before the call
+    uint64_t num = std::strtoull(str.c_str(), &end, 10);
+
+    // Check if conversion was successful
+    check(*end == '\0' && errno != ERANGE, "invalid number format or overflow");
+
+    // Check for underflow
+    check(num <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()), "number underflow");
+
+    return static_cast<int64_t>(num);
+}
+
+uint64_t bytesToUint64(const bytes& b) {
+    check(b.size() == 8, "bytesToUint64: invalid bytes size");
+
+    uint64_t result = 0;
+    for (int i = 0; i < 8; ++i) {
+        result = (result << 8) | b[i];
+    }
+    return result;
 }

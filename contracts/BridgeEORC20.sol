@@ -82,7 +82,7 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     }
 
     function _notifyBridge(address from, address to, bytes memory data) internal {
-        bytes memory receiver_msg = abi.encodePacked(_msgSender(), from, to, data);
+        bytes memory receiver_msg = abi.encodePacked(_msgSender(), from, to, id, data);
         (bool success, ) = evmAddress.call{value: msg.value}(
             abi.encodeWithSignature("bridgeMsgV0(string,bool,bytes)", bridgeAccount, true, receiver_msg )
         );

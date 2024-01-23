@@ -106,17 +106,25 @@ void bridge::onbridgemsg( const bridge_message_t message )
     // handle operations
     const name op = inscription_data.op;
     if ( op == "transfer"_n) handle_transfer_op(message_data, inscription_data);
-    // else if ( op == "mint") handle_mint_op(message_data, inscription_data);
-    // else if ( op == "deploy") handle_deploy_op(message_data, inscription_data);
+    else if ( op == "mint"_n) {}
+    else if ( op == "deploy"_n) {}
     else check(false, "invalid inscription operation");
 
     // log inscription
     bridge::inscribe_action inscribe(get_self(), {get_self(), "active"_n});
-    inscribe.send(bytesToHexString(message_data.from), bytesToHexString(message_data.to), message_data.calldata);
+    bridge::transferins_action transferins(get_self(), {get_self(), "active"_n});
+    inscribe.send(message_data.id, message_data.calldata);
+    transferins.send(message_data.from, message_data.to, message_data.id);
 }
 
 [[eosio::action]]
-void bridge::inscribe( const string from, const string to, const string data )
+void bridge::inscribe( const uint64_t id, const string data )
+{
+    require_auth(get_self());
+}
+
+[[eosio::action]]
+void bridge::transferins( const address from, const address to, const uint64_t id )
 {
     require_auth(get_self());
 }
@@ -140,9 +148,10 @@ void bridge::handle_transfer_op( const bridge_message_data message_data, const b
 }
 
 [[eosio::action]]
-void bridge::test(bytes data) {
-    const bridge_message_data message_data = parse_bridge_message_data(data);
-    const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
+void bridge::test(string data) {
+    print(to_number(data));
+    // const bridge_message_data message_data = parse_bridge_message_data(data);
+    // const bridge_message_calldata inscription_data = parse_bridge_message_calldata(message_data.calldata);
 }
 
 bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data )
@@ -151,7 +160,8 @@ bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data 
     const bytes sender = {data.begin(), data.begin() + 20};
     const bytes from = {data.begin() + 20, data.begin() + 40};
     const bytes to = {data.begin() + 40, data.begin() + 60};
-    const string calldata = {data.begin() + 60, data.end()};
+    const uint64_t id = bytesToUint64({data.begin() + 60, data.begin() + 68});
+    const string calldata = {data.begin() + 68, data.end()};
 
     // parse reserved addresses
     const name from_account = name{*silkworm::extract_reserved_address(from)};
@@ -166,9 +176,10 @@ bridge::bridge_message_data bridge::parse_bridge_message_data( const bytes data 
         "\nfrom_account: ", from_account,
         "\nto: ", bytesToHexString(to),
         "\nto_account: ", to_account,
+        "\nid: ", id,
         "\ncalldata: ", calldata
     );
-    return {sender, from, from_account, to, to_account, calldata};
+    return {sender, from, from_account, to, to_account, id, calldata};
 }
 
 bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const string calldata)
@@ -181,14 +192,26 @@ bridge::bridge_message_calldata bridge::parse_bridge_message_calldata(const stri
     const string p = j["p"];
     const name op = utils::parse_name(j["op"]);
     const name tick = utils::parse_name(j["tick"]);
-    const int64_t amt = to_number(string{j["amt"]});
-    const int64_t max = to_number(string{j["max"]});
-    const int64_t lim = to_number(string{j["lim"]});
 
     // validate inscription
     check(tick.value, "invalid inscription tick");
     check(p == "eorc-20", "invalid inscription protocol");
     check(op == "mint"_n || op == "transfer"_n || op == "deploy"_n, "invalid inscription operation");
+
+    // parse inscription data
+    int64_t amt = 0;
+    int64_t max = 0;
+    int64_t lim = 0;
+    if ( op == "mint"_n || op == "transfer"_n ) {
+        check(j.contains("amt"), "invalid inscription amount");
+        amt = to_number(string{j["amt"]});
+    }
+    if ( op == "deploy"_n ) {
+        check(j.contains("max"), "invalid inscription max");
+        check(j.contains("lim"), "invalid inscription lim");
+        max = to_number(string{j["max"]});
+        lim = to_number(string{j["lim"]});
+    }
 
     print(
         "\nparse_bridge_message_calldata",

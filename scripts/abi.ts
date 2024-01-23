@@ -8,7 +8,10 @@ export const wagmiAbi = [
     {
         inputs: [
             { name: "name_", type: "string" },
-            { name: "symbol_", type: "string" }
+            { name: "symbol_", type: "string" },
+            { name: "tick_", type: "string" },
+            { name: "max_", type: "uint64" },
+            { name: "lim_", type: "uint64" },
         ],
         stateMutability: "nonpayable",
         type: "constructor",
@@ -34,8 +37,8 @@ export function transfer(to: Address, value: bigint): AnyAction {
     return call(session, CONTRACT, parseUnits("0.0", 18), data)
 }
 
-export function deploy(name: string, tick: string, bytecode: Hex): AnyAction {
-    const data = encodeDeployData({abi: wagmiAbi, args: [ name, tick ], bytecode});
+export function deploy(name: string, symbol: string, tick: string, max: bigint, lim: bigint, bytecode: Hex): AnyAction {
+    const data = encodeDeployData({abi: wagmiAbi, args: [ name, symbol, tick, max, lim ], bytecode});
     return call(session, null, parseUnits("0.0", 18), data)
 }
 

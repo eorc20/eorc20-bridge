@@ -20,6 +20,7 @@ using namespace eosio;
 using namespace std;
 
 typedef std::vector<uint8_t> bytes;
+typedef bytes address;
 
 constexpr size_t kAddressLength{20};
 constexpr size_t kHashLength{32};
@@ -179,6 +180,7 @@ public:
         name        from_account;
         bytes       to;
         name        to_account;
+        uint64_t    id;
         string      calldata;
     };
 
@@ -195,11 +197,14 @@ public:
     void onbridgemsg(const bridge_message_t message);
 
     [[eosio::action]]
-    void test(const bytes data);
+    void test(const string data);
 
     [[eosio::action]]
-    void inscribe( const string from, const string to, const string data );
+    void inscribe( const uint64_t id, const string data );
     using inscribe_action = eosio::action_wrapper<"inscribe"_n, &bridge::inscribe>;
+
+    void transferins( const address from, const address to, const uint64_t id );
+    using transferins_action = eosio::action_wrapper<"transferins"_n, &bridge::transferins>;
 
     [[eosio::on_notify("*::transfer")]]
     void on_transfer_token( const name from,

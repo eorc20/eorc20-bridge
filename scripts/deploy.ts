@@ -4,7 +4,9 @@ import { transact } from "./transact.js";
 
 // push transaction
 const name = "EOSS eorc-20"
-const tick = "eoss"
+const symbol = "eoss"
+const tick = symbol;
 const max = 210000000000n
+const lim = 10000n
 
-await transact([deploy(name, tick, max, bytecode)]);
+await transact([deploy(name, symbol, tick, max, lim, bytecode)]);
