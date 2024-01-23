@@ -49,7 +49,6 @@ public:
      * ```json
      * {
      *     "tick": "eoss",
-     *     "address": "59c2fffb3541a8d50ae75ae3c650f029509acdbe",
      *     "maximum_supply": "210000000000 EOSS",
      *     "contract": "token.eorc",
      *     "issuer": "bridge.eorc"
@@ -58,7 +57,6 @@ public:
      */
     struct [[eosio::table("tokens")]] tokens_row {
         name                tick;
-        bytes               address;
         asset               maximum_supply;
         name                contract;
         name                issuer;
@@ -113,15 +111,44 @@ public:
         time_point_sec      timestamp;
 
         uint64_t primary_key() const { return tick.value; }
+        checksum256 by_address() const { return evm_runtime::make_key(address); }
     };
-    typedef eosio::multi_index< "deploy"_n, deploy_row> deploy_table;
+    typedef eosio::multi_index< "deploy"_n, deploy_row,
+        indexed_by<"by.address"_n, const_mem_fun<deploy_row, checksum256, &deploy_row::by_address>>
+    > deploy_table;
 
-    static checksum256 to_checksum( string str )
-    {
-        size_t start_index = (str.substr(0, 2) == "0x") ? 2 : 0;
-        str = str.substr(start_index);
-        return sha256(str.c_str(), str.length());
-    }
+    /**
+     * ## TABLE `mints`
+     *
+     * - scope: `{name} tick`
+     *
+     * ### params
+     *
+     * - `{uint64_t} id` - (primary key) incremental ID
+     * - `{bytes} address` - address
+     * - `{int64_t} balance` - token balance
+     *
+     * ### example
+     *
+     * ```json
+     * {
+     *     "id": 0,
+     *     "address": "3495F427Fcfe765d9C1174efe5C14014D2020Ed1",
+     *     "balance": 30000
+     * }
+     * ```
+     */
+    struct [[eosio::table("mints")]] mints_row {
+        uint64_t            id;
+        bytes               address;
+        int64_t             balance;
+
+        uint64_t primary_key() const { return id; }
+        checksum256 by_address() const { return evm_runtime::make_key(address); }
+    };
+    typedef eosio::multi_index< "mints"_n, mints_row,
+        indexed_by<"by.address"_n, const_mem_fun<mints_row, checksum256, &mints_row::by_address>>
+    > mints_table;
 
     /**
      * ## TABLE `configs`
@@ -234,7 +261,7 @@ private:
     tokens_row get_token_by_contract( const symbol_code symcode, const name contract );
     tokens_row get_token( const name tick );
     void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
-    void handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data );
+    void handle_transfer_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
     void handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
 
     bytes parse_address( const string memo );

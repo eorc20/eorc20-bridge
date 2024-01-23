@@ -39,7 +39,7 @@ void bridge::onbridgemsg( const bridge_message_t message )
 
     // handle operations
     const name op = inscription_data.op;
-    if ( op == "transfer"_n) handle_transfer_op(message_data, inscription_data);
+    if ( op == "transfer"_n) handle_transfer_op(msg.sender, message_data, inscription_data);
     else if ( op == "deploy"_n) handle_deploy_op(msg.sender, message_data, inscription_data);
     else if ( op == "mint"_n) {}
     else check(false, "invalid inscription operation");
@@ -84,13 +84,11 @@ void bridge::regtoken( const name tick, const symbol_code symcode, const name co
 
     tokens.emplace(get_self(), [&](auto& row) {
         row.tick = tick;
-        row.address = deploy.address;
         row.maximum_supply = maximum_supply;
         row.contract = contract;
         row.issuer = issuer;
     });
 }
-
 
 bool bridge::is_token_exists( const name contract, const symbol_code symcode )
 {
@@ -136,18 +134,22 @@ void bridge::pause( const bool paused )
     configs.set(config, get_self());
 }
 
-void bridge::handle_transfer_op( const bridge_message_data message_data, const bridge_message_calldata inscription_data )
+void bridge::handle_transfer_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data )
 {
+    // validate transfer
+    const name tick = inscription_data.tick;
+    const int64_t amount = inscription_data.amt;
+    check(amount > 0, "amount must be greater than 0");
+    const deploy_row deploy = get_deploy(tick);
+    check(deploy.address == address, "invalid deploy address");
+
     // only handle EVM=>Native reserved address transfers
     const name to = message_data.to_account;
     if ( to ) {
         print("\ntransfer to reserved address: ", to);
-
-        const int64_t amount = inscription_data.amt;
-        check(amount > 0, "amount must be greater than 0");
-        const tokens_row token = get_token(inscription_data.tick);
+        const tokens_row token = get_token(tick);
         const symbol sym = token.maximum_supply.symbol;
-        const string memo = bytesToHexString(message_data.from);
+        const string memo = bytesToHexString(message_data.from); // use from address as memo
 
         eosio::token::transfer_action transfer(token.contract, {get_self(), "active"_n});
         transfer.send(get_self(), to, asset{amount, sym}, memo);
@@ -283,6 +285,7 @@ bridge::tokens_row bridge::get_token( const name tick )
 
 void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo )
 {
+    auto deploy = get_deploy(token.tick);
     const char method[4] = {'\xa9', '\x05', '\x9c', '\xbb'};  // sha3(transfer(address,uint256))[:4]
     // const char method[4] = {'\x40', '\xc1', '\x0f', '\x19'};  // sha3(mint(address,uint256))[:4]
 
@@ -306,7 +309,7 @@ void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity
     value_zero.resize(32, 0);
 
     evm_runtime::call_action call_act("eosio.evm"_n, {{get_self(), "active"_n}});
-    call_act.send(get_self(), token.address, value_zero, call_data, EVM_INIT_GAS_LIMIT);
+    call_act.send(get_self(), deploy.address, value_zero, call_data, EVM_INIT_GAS_LIMIT);
 }
 
 bytes bridge::parse_address( const string memo )
