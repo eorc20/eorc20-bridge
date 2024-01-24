@@ -65,8 +65,8 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
 
     function _afterTokenTransfer(address to, uint256 value) internal {
         // all transfers to reserved address will be escrowed bridge address
-        if (_isReservedAddress(to)) {
-            _transfer(to, bridgeAddress, value);
+        if ( _isReservedAddress(to) ) {
+            _burn(to, value);
         }
     }
 

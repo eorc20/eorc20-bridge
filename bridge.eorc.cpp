@@ -155,12 +155,14 @@ void bridge::handle_transfer_op( const bytes address, const bridge_message_data 
     check(amount > 0, "inscription amount must be greater than 0");
     check_deploy_inscription(address, inscription_data);
 
-    // ignore bridge recipient
     const bytes contract = get_deploy(tick).address;
+    const name to = message_data.to_account;
+
+    // ignore bridge recipient
     if ( message_data.to == contract ) return;
+    if ( to == get_self() ) return;
 
     // only handle EVM=>Native reserved address transfers
-    const name to = message_data.to_account;
     if ( to ) {
         print("\ntransfer to reserved address: ", to);
         const tokens_row token = get_token(tick);

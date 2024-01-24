@@ -20,4 +20,4 @@ const hash = await walletClient.sendTransaction({
     chain: eosTestnet,
 })
 
-console.log({from: walletClient.account.address, to, amount, hash});
+console.log({contract: CONTRACT, from: walletClient.account.address, to, amount, hash});
