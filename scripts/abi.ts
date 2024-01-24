@@ -32,9 +32,12 @@ export function mint(to: Address, value: bigint): AnyAction {
     return call(session, CONTRACT, parseUnits("0.0", 18), data)
 }
 
+export function transferData(to: Address, value: bigint): Hex {
+    return encodeFunctionData({abi, args: [ to, value ], functionName: "transfer"});
+}
+
 export function transfer(to: Address, value: bigint): AnyAction {
-    const data = encodeFunctionData({abi, args: [ to, value ], functionName: "transfer"});
-    return call(session, CONTRACT, parseUnits("0.0", 18), data)
+    return call(session, CONTRACT, parseUnits("0.0", 18), transferData(to, value))
 }
 
 export function deploy(name: string, symbol: string, tick: string, max: bigint, lim: bigint, bytecode: Hex): AnyAction {
