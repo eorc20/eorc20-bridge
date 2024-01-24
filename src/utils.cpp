@@ -77,18 +77,6 @@ uint64_t bytesToUint64(const bytes& b) {
     return result;
 }
 
-// uint32_t get_evm_genesis_time() {
-//     evm_runtime::config_table _config("eosio.evm"_n, "eosio.evm"_n.value);
-//     auto config = _config.get();
-//     print("\ngenesis_time", config.genesis_time.sec_since_epoch());
-//     return config.genesis_time.sec_since_epoch();
-// }
-
-// uint32_t current_evm_block_number() {
-//     const uint32_t current = current_time_point().sec_since_epoch();
-//     return current - get_evm_genesis_time() + 1;
-// }
-
 checksum256 get_trx_id()
 {
     size_t size = transaction_size();

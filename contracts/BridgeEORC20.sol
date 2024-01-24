@@ -108,6 +108,6 @@ contract BridgeEORC20 is ERC20, IERC7583, Ownable {
     // payable fee for bridge message may be required to cover gas fees
     // invalid mint operations will be reverted by bridge
     fallback() external payable {
-        _notifyBridge(_msgSender(), address(this), msg.data);
+        _inscribe(_msgSender(), address(this), msg.data);
     }
 }

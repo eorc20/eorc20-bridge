@@ -19,7 +19,10 @@ void bridge::on_transfer_token( const name from,
     if ( from == get_self() || to != get_self() || from == "eosio.ram"_n ) return;
 
     const tokens_row token = get_token_by_contract(quantity.symbol.code(), get_first_receiver());
-    handle_erc20_transfer(token, quantity, memo);
+    const address to_address = parse_address(memo);
+    const address contract = get_deploy(token.tick).address;
+    check(!silkworm::is_reserved_address(to_address), "invalid EVM address, cannot be reserved address");
+    handle_erc20_call(METHOD_TRANSFER, contract, to_address, quantity);
 }
 
 [[eosio::action]]
@@ -152,6 +155,10 @@ void bridge::handle_transfer_op( const bytes address, const bridge_message_data 
     check(amount > 0, "inscription amount must be greater than 0");
     check_deploy_inscription(address, inscription_data);
 
+    // ignore bridge recipient
+    const bytes contract = get_deploy(tick).address;
+    if ( message_data.to == contract ) return;
+
     // only handle EVM=>Native reserved address transfers
     const name to = message_data.to_account;
     if ( to ) {
@@ -173,33 +180,45 @@ void bridge::handle_mint_op( const bytes address, const bridge_message_data mess
     check(amount > 0, "inscription amount must be greater than 0");
     check_deploy_inscription(address, inscription_data);
 
+    // only listen if bridge is recipient
+    const bytes contract = get_deploy(tick).address;
+    if ( message_data.to != contract ) return;
+
     // mint tokens on Native to bridge
     const tokens_row token = get_token(tick);
     const symbol sym = token.maximum_supply.symbol;
     const bytes from = message_data.from;
     const string memo = bytesToHexString(from); // use from address as memo
+    const asset quantity = asset{amount, sym};
     eosio::token::issue_action issue(token.contract, {get_self(), "active"_n});
-    issue.send(get_self(), asset{amount, sym}, memo);
+    issue.send(get_self(), quantity, memo);
 
-    // add minted newly tokens to address
-    mints_table mints(get_self(), tick.value);
-    auto index = mints.get_index<"by.address"_n>();
-    auto itr = index.find(evm_runtime::make_key(from));
-    if ( itr == index.end() ) {
-        mints.emplace(get_self(), [&](auto& row) {
-            row.id = mints.available_primary_key();
-            row.address = from;
-            row.balance = amount;
-        });
-    } else {
-        index.modify(itr, get_self(), [&](auto& row) {
-            row.balance += amount;
-        });
-    }
+    // mint on EVM
+    const deploy_row deploy = get_deploy(tick);
+    handle_erc20_call(METHOD_MINT, deploy.address, from, quantity);
+
+    // // add minted newly tokens to address
+    // mints_table mints(get_self(), tick.value);
+    // auto index = mints.get_index<"by.address"_n>();
+    // auto itr = index.find(evm_runtime::make_key(from));
+    // if ( itr == index.end() ) {
+    //     mints.emplace(get_self(), [&](auto& row) {
+    //         row.id = mints.available_primary_key();
+    //         row.address = from;
+    //         row.balance = amount;
+    //     });
+    // } else {
+    //     index.modify(itr, get_self(), [&](auto& row) {
+    //         row.balance += amount;
+    //     });
+    // }
 }
 
 void bridge::handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data )
 {
+    // only handle deploy with [to=null] address
+    if ( message_data.to != bytes(kAddressLength, 0) ) return;
+
     const name tick = inscription_data.tick;
     const string p = inscription_data.p;
     const int64_t max = inscription_data.max;
@@ -211,7 +230,7 @@ void bridge::handle_deploy_op( const bytes address, const bridge_message_data me
     // insert deploy to table
     deploy_table deploy(get_self(), get_self().value);
     auto _deploy = deploy.find(tick.value);
-    check(_deploy == deploy.end(), "deploy already exists");
+    check(_deploy == deploy.end(), tick.to_string() + " tick is already deployed");
 
     const checksum256 trx_id = get_trx_id();
     deploy.emplace(get_self(), [&](auto& row) {
@@ -326,33 +345,28 @@ bridge::tokens_row bridge::get_token( const name tick )
     return tokens.get(tick.value, "EORC-20 token not registerred");
 }
 
-void bridge::handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo )
+void bridge::handle_erc20_call( const char method[4], const bytes contract, const address to, const asset quantity )
 {
-    auto deploy = get_deploy(token.tick);
-    const char method[4] = {'\xa9', '\x05', '\x9c', '\xbb'};  // sha3(transfer(address,uint256))[:4]
-    // const char method[4] = {'\x40', '\xc1', '\x0f', '\x19'};  // sha3(mint(address,uint256))[:4]
-
+    // convert quantity to uint256
     intx::uint256 value((uint64_t)quantity.amount);
-
     uint8_t value_buffer[32] = {};
     intx::be::store(value_buffer, value);
 
-    const bytes address_bytes = parse_address( memo );
-    // TO-DO check
-    // Must be a valid EVM address
-
+    // create call data
     bytes call_data;
     call_data.reserve(4 + 64);
     call_data.insert(call_data.end(), method, method + 4);
     call_data.insert(call_data.end(), 32 - kAddressLength, 0);  // padding for address
-    call_data.insert(call_data.end(), address_bytes.begin(), address_bytes.end());
+    call_data.insert(call_data.end(), to.begin(), to.end());
     call_data.insert(call_data.end(), value_buffer, value_buffer + 32);
 
-    bytes value_zero; // value of EVM native token (aka EOS)
+    // send 0 EOS value
+    bytes value_zero;
     value_zero.resize(32, 0);
 
+    // send call action
     evm_runtime::call_action call_act("eosio.evm"_n, {{get_self(), "active"_n}});
-    call_act.send(get_self(), deploy.address, value_zero, call_data, EVM_INIT_GAS_LIMIT);
+    call_act.send(get_self(), contract, value_zero, call_data, EVM_INIT_GAS_LIMIT);
 }
 
 bytes bridge::parse_address( const string memo )

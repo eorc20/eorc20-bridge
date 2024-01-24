@@ -26,7 +26,8 @@ constexpr size_t kAddressLength{20};
 constexpr size_t kHashLength{32};
 constexpr uint64_t EVM_GASLIMIT = 500000;
 constexpr uint64_t EVM_INIT_GAS_LIMIT = 10000000;
-// constexpr uint32_t EVM_LOCK_GENESIS_TIME = 1680661089; // "2023-04-05T02:18:09Z"
+constexpr char METHOD_TRANSFER[4] = {'\xa9', '\x05', '\x9c', '\xbb'};  // sha3(transfer(address,uint256))[:4]
+constexpr char METHOD_MINT[4] = {'\x40', '\xc1', '\x0f', '\x19'};  // sha3(mint(address,uint256))[:4]
 
 class [[eosio::contract("bridge.eorc")]] bridge : public eosio::contract {
 
@@ -260,7 +261,7 @@ private:
     deploy_row get_deploy( const name tick );
     tokens_row get_token_by_contract( const symbol_code symcode, const name contract );
     tokens_row get_token( const name tick );
-    void handle_erc20_transfer( const tokens_row token, const asset quantity, const string memo );
+    void handle_erc20_call( const char method[4], const address contract, const address to, const asset quantity );
     void handle_transfer_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
     void handle_deploy_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );
     void handle_mint_op( const bytes address, const bridge_message_data message_data, const bridge_message_calldata inscription_data );

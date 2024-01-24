@@ -28,9 +28,11 @@ void bridge::cleartable( const name table_name, const optional<name> scope, cons
     bridge::config_table _config( get_self(), value );
     bridge::tokens_table _tokens( get_self(), value );
     bridge::deploy_table _deploy( get_self(), value );
+    bridge::mints_table _mints( get_self(), value );
 
     if (table_name == "tokens"_n) clear_table( _tokens, rows_to_clear );
     else if (table_name == "deploy"_n) clear_table( _deploy, rows_to_clear );
+    else if (table_name == "mints"_n) clear_table( _mints, rows_to_clear );
     else if (table_name == "config"_n) _config.remove();
     else check(false, "cleartable: [table_name] unknown table to clear" );
 }
